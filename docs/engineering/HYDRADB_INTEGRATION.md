@@ -55,12 +55,12 @@ Create a separate literal query per node label because labels cannot be paramete
 
 ```cypher
 UNWIND $rows AS row
-MATCH (s {id: row.source}), (d {id: row.target})
+MATCH (s:Service {id: row.source}), (d:PackageVersion {id: row.target})
 MERGE (s)-[r:DEPENDS_ON {id: row.id}]->(d)
 SET r.source_ref = row.source_ref, r.fixture = row.fixture
 ```
 
-Create a separate literal template per allowed relationship type. Never interpolate user input; select from a closed mapping in code. HydraDB requires one directed one-hop relationship pattern per batch.
+Create a separate literal template per allowed relationship type and endpoint-label pair. `DEPENDS_ON` has separate `Service -> PackageVersion` and `PackageVersion -> PackageVersion` templates. Never interpolate user input; select from a closed mapping in code. HydraDB requires exactly one label on each endpoint and one directed one-hop relationship pattern per batch.
 
 ## Read templates
 

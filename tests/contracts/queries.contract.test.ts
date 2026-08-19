@@ -1,9 +1,9 @@
-import { EDGE_QUERY_BY_TYPE, NODE_QUERY_BY_LABEL, QUERIES } from "@/lib/hydradb/queries";
+import { EDGE_QUERY_BY_KIND, NODE_QUERY_BY_LABEL, QUERIES } from "@/lib/hydradb/queries";
 
 describe("Cypher query ownership", () => {
   it("keeps all write labels and relationship types in the allowlists", () => {
     expect(Object.keys(NODE_QUERY_BY_LABEL)).toHaveLength(9);
-    expect(Object.keys(EDGE_QUERY_BY_TYPE)).toHaveLength(10);
+    expect(Object.keys(EDGE_QUERY_BY_KIND)).toHaveLength(11);
     expect(QUERIES.reverseBlastPaths).toContain("algo.SSpaths");
     expect(QUERIES.exactPath).toContain("algo.SPpaths");
     expect(QUERIES.reverseBlastPaths).toContain("relDirection: 'incoming'");
@@ -13,8 +13,11 @@ describe("Cypher query ownership", () => {
     expect(QUERIES.seedMarker).toContain("-[:SEEDED]->(o:Organization)");
     expect(QUERIES.removeSeedMarker).toContain("{key: 'seed:blastpath-demo-v1'}");
     expect(QUERIES.removeSeedMarker).toContain("DETACH DELETE s");
-    for (const query of Object.values(EDGE_QUERY_BY_TYPE)) {
+    for (const query of Object.values(EDGE_QUERY_BY_KIND)) {
       expect(query).toContain("r.key = row.key");
+      expect(query).toMatch(
+        /MATCH \(s:[A-Za-z]+ \{id: row\.source\}\), \(d:[A-Za-z]+ \{id: row\.target\}\)/,
+      );
     }
     expect(QUERIES.seedNodeCounts).toContain("MATCH (n)");
     expect(QUERIES.seedEdgeCounts).toContain("count(r)");

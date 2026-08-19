@@ -112,7 +112,7 @@ describe("HydraDB repository protocol boundaries", () => {
     const edge: GraphEdge = {
       id: "3",
       type: "DEPENDS_ON",
-      key: "edge:DEPENDS_ON:source->target:default",
+      key: "edge:DEPENDS_ON:service:test->pkg:npm/test@1.0.0:default",
       source: "1",
       target: "2",
       sourceRef: "default",
@@ -122,6 +122,40 @@ describe("HydraDB repository protocol boundaries", () => {
     await repository.upsertEdges([edge], "fixtures");
 
     expect(parameters).toMatchObject({ rows: [{ key: edge.key }] });
+  });
+
+  it("splits dependency writes by their fixed source endpoint label", async () => {
+    const queries: string[] = [];
+    const client = {
+      query: async (_operation: string, query: string) => {
+        queries.push(query);
+        return result([], []);
+      },
+    };
+    const repository = new HydraRepository(client as never);
+    const serviceEdge: GraphEdge = {
+      id: "3",
+      type: "DEPENDS_ON",
+      key: "edge:DEPENDS_ON:service:test->pkg:npm/root@1.0.0:default",
+      source: "1",
+      target: "2",
+      sourceRef: "default",
+      properties: {},
+    };
+    const packageEdge: GraphEdge = {
+      id: "4",
+      type: "DEPENDS_ON",
+      key: "edge:DEPENDS_ON:pkg:npm/root@1.0.0->pkg:npm/child@1.0.0:default",
+      source: "2",
+      target: "5",
+      sourceRef: "default",
+      properties: {},
+    };
+
+    await repository.upsertEdges([serviceEdge, packageEdge], "fixtures");
+
+    expect(queries).toContainEqual(expect.stringContaining("MATCH (s:Service"));
+    expect(queries).toContainEqual(expect.stringContaining("MATCH (s:PackageVersion"));
   });
 
   it("preserves node batch context and the HydraDB query ID", async () => {
@@ -162,7 +196,7 @@ describe("HydraDB repository protocol boundaries", () => {
     const edge: GraphEdge = {
       id: "3",
       type: "DEPENDS_ON",
-      key: "edge:DEPENDS_ON:source->target:default",
+      key: "edge:DEPENDS_ON:service:test->pkg:npm/test@1.0.0:default",
       source: "1",
       target: "2",
       sourceRef: "default",

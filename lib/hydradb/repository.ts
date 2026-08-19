@@ -1,4 +1,4 @@
-import { QUERIES, NODE_QUERY_BY_LABEL, EDGE_QUERY_BY_TYPE, QUERY_IDS } from "@/lib/hydradb/queries";
+import { QUERIES, NODE_QUERY_BY_LABEL, EDGE_QUERY_BY_KIND, QUERY_IDS } from "@/lib/hydradb/queries";
 import { HydradbClient, isDecodedPath, type QueryConsistency } from "@/lib/hydradb/client";
 import { rowsAsRecords, type DecodedPath } from "@/lib/hydradb/codec";
 import { HydradbBatchError, HydradbError, AppError } from "@/lib/api/errors";
@@ -39,6 +39,18 @@ const RELATIONSHIP_TYPES: readonly RelationshipType[] = [
   "AFFECTS",
   "SEEDED",
 ];
+
+type EdgeWriteKind = keyof typeof EDGE_QUERY_BY_KIND;
+
+function edgeWriteKind(edge: GraphEdge): EdgeWriteKind {
+  if (edge.type !== "DEPENDS_ON") return edge.type;
+  if (edge.key.startsWith("edge:DEPENDS_ON:service:")) return "DEPENDS_ON_SERVICE";
+  if (edge.key.startsWith("edge:DEPENDS_ON:pkg:npm/")) return "DEPENDS_ON_PACKAGE_VERSION";
+  throw new HydradbError(
+    "HYDRADB_PROTOCOL_ERROR",
+    "A DEPENDS_ON edge has an invalid canonical source key.",
+  );
+}
 
 function asString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0)
@@ -466,24 +478,25 @@ export class HydraRepository {
   }
 
   async upsertEdges(edges: GraphEdge[], fixtureRoot: string, includeMarker = false): Promise<void> {
-    const grouped = new Map<RelationshipType, GraphEdge[]>();
+    const grouped = new Map<EdgeWriteKind, GraphEdge[]>();
     for (const edge of edges) {
       if (!includeMarker && edge.type === "SEEDED") continue;
-      const values = grouped.get(edge.type) ?? [];
+      const kind = edgeWriteKind(edge);
+      const values = grouped.get(kind) ?? [];
       values.push(edge);
-      grouped.set(edge.type, values);
+      grouped.set(kind, values);
     }
-    for (const type of Object.keys(EDGE_QUERY_BY_TYPE) as RelationshipType[]) {
+    for (const kind of Object.keys(EDGE_QUERY_BY_KIND) as EdgeWriteKind[]) {
       const batches = chunks(
-        (grouped.get(type) ?? []).sort((a, b) => a.id.localeCompare(b.id)),
+        (grouped.get(kind) ?? []).sort((a, b) => a.id.localeCompare(b.id)),
         BATCH_SIZE,
       );
       for (let batchIndex = 0; batchIndex < batches.length; batchIndex += 1) {
         const batch = batches[batchIndex];
         try {
           await this.execute(
-            `write-${type.toLowerCase()}`,
-            EDGE_QUERY_BY_TYPE[type],
+            `write-${kind.toLowerCase().replaceAll("_", "-")}`,
+            EDGE_QUERY_BY_KIND[kind],
             {
               rows: batch.map((edge) => ({
                 id: Number(edge.id),
@@ -498,7 +511,8 @@ export class HydraRepository {
             false,
           );
         } catch (error) {
-          throw new HydradbBatchError("relationship", type, batchIndex, error);
+          const relationshipType = batches[batchIndex]?.[0]?.type ?? "DEPENDS_ON";
+          throw new HydradbBatchError("relationship", relationshipType, batchIndex, error);
         }
       }
     }

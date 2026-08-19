@@ -164,3 +164,12 @@ Append only. Implementation agents record deviations and dependency additions he
 - Alternatives rejected: Logging the raw response can expose internal data. Keeping only the HTTP status cannot distinguish parser, identity, and mutation failures.
 - Affected files: the HydraDB client, HydraDB error type, seed-failure record, unit tests, and this log.
 - Scope/acceptance: successful query behavior does not change. Tokens, headers, parameters, and unapproved response fields remain excluded.
+
+## D021 — Label every HydraDB relationship batch endpoint
+
+- Date: 2026-08-20.
+- Decision: Add one exact node label to each source and target in every relationship batch query. Use separate fixed templates for `Service -> PackageVersion` and `PackageVersion -> PackageVersion` dependency edges.
+- Reason/evidence: HydraDB 0.1.1 rejected the first relationship batch with `UNWIND MATCH CREATE endpoints require exactly one label` after all node batches completed.
+- Alternatives rejected: One unlabeled query is rejected by HydraDB. A dynamic label would violate the fixed-Cypher security boundary. Changing fixtures would change the approved graph.
+- Affected files: HydraDB queries, repository edge batching, query contract tests, repository protocol tests, HydraDB integration documentation, and this log.
+- Scope/acceptance: graph identities, relationship identities, fixtures, and golden outcomes do not change. Railway seeding requires manual verification.
