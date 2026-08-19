@@ -14,6 +14,10 @@ describe("Railway HydraDB image", () => {
 
     const config = await readFile(path.resolve(process.cwd(), "railway.json"), "utf8");
     expect(config).not.toContain("healthcheckPath");
+
+    const compose = await readFile(path.resolve(process.cwd(), "docker-compose.yml"), "utf8");
+    expect(compose).toContain('GRAPH_ALLOW_PLAINTEXT: "true"');
+    expect(compose).not.toContain("ENABLE_PLAINTEXT");
   });
 
   it("uses one public gateway for both private HydraDB HTTP ports", async () => {

@@ -110,3 +110,12 @@ Append only. Implementation agents record deviations and dependency additions he
 - Alternatives rejected: A direct Railway probe cannot supply the HydraDB bearer token. Keeping two readiness owners caused an avoidable deployment failure.
 - Affected files: `railway.json`, Railway contract tests, the manual live-test guide, and this log.
 - Scope/acceptance: no graph, fixture, query, or application behavior changed. Live Railway verification remains pending.
+
+## D015 — Use the HydraDB 0.1.1 plaintext variable name
+
+- Date: 2026-08-19.
+- Decision: Set `GRAPH_ALLOW_PLAINTEXT=true` for the pinned HydraDB runtime.
+- Reason/evidence: The real Railway runtime rejected `ENABLE_PLAINTEXT` and reported that `GRAPH_ALLOW_PLAINTEXT` is required when graph TLS certificate files are absent.
+- Alternatives rejected: Adding graph TLS certificate secrets is unnecessary because HydraDB stays inside Railway private networking and the public gateway provides HTTPS.
+- Affected files: `docker-compose.yml`, the manual live-test guide, Railway contract tests, and this log.
+- Scope/acceptance: no application behavior, fixtures, Cypher, or golden outcomes changed. Railway startup must be manually retried.

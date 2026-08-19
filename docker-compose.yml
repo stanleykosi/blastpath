@@ -15,7 +15,7 @@ services:
       CACHE_PATH: /data/cache
       BOLT_ADDR: 0.0.0.0:7687
       ADVERTISED_ADDR: hydradb:7687
-      ENABLE_PLAINTEXT: "true"
+      GRAPH_ALLOW_PLAINTEXT: "true"
       TOKEN_FILE: /run/secrets/hydradb_token
       RUST_MIN_STACK: "33554432"
     volumes:
