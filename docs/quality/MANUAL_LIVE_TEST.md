@@ -46,20 +46,20 @@ Add these service variables. Add `HYDRADB_TOKEN` as a secret variable.
 CLOUD_PROVIDER=local
 GRAPH_NAMESPACE=default
 GRAPH_ID=default
-CELL_ID=cell-0
-NODE_ID=hydradb
+GRAPH_CELL_ID=cell-0
+GRAPH_CELLS=cell-0
+GRAPH_NODE_ID=hydradb
 LOCAL_PATH=/data/store
-STORE_PATH=/data/store
-CACHE_PATH=/data/cache
-BOLT_ADDR=0.0.0.0:7687
-ADVERTISED_ADDR=hydradb.railway.internal:7687
+GRAPH_BOLT_NODE_ADDRESSES=hydradb=hydradb.railway.internal:7687
+GRAPH_ADVERTISED_BOLT_ADDR=hydradb.railway.internal:7687
+GRAPH_DATA_CACHE_DIR=/data/cache
+GRAPH_AUTH_TOKEN_FILE=/tmp/hydradb-token
 GRAPH_ALLOW_PLAINTEXT=true
-TOKEN_FILE=/tmp/hydradb-token
 RUST_MIN_STACK=33554432
 HYDRADB_TOKEN=<set-as-a-Railway-secret>
 ```
 
-`CLOUD_PROVIDER=local` selects HydraDB filesystem storage. `LOCAL_PATH=/data/store` supplies its required path in the persistent Railway Volume. `BOLT_ADDR` and `ADVERTISED_ADDR` configure HydraDB node communication. Port `7687` stays private and BlastPath does not use it.
+`CLOUD_PROVIDER=local` selects HydraDB filesystem storage. `LOCAL_PATH=/data/store` supplies its required path in the persistent Railway Volume. The `GRAPH_BOLT_NODE_ADDRESSES` and `GRAPH_ADVERTISED_BOLT_ADDR` variables configure HydraDB node communication. Port `7687` stays private and BlastPath does not use it.
 
 Do not configure a Railway health-check path or `PORT` variable on the private `hydradb` service. The public `gateway` service checks `/readyz` and the private `seeder` service retries until HydraDB is ready.
 
@@ -425,7 +425,7 @@ This removes only the local HydraDB data directories and containers for this rep
 
 - Authentication failure: check that `hydradb-token` is readable by Docker, `.env.local` has the same token, and no token has a trailing line break.
 - Railway image pull failure: confirm that Railway can read `ghcr.io/hydra-db/hydradb:0.1.1`. Add only a read-only GHCR package credential if the package is private. Do not use `latest` or replace the pinned image.
-- Railway token-file failure: confirm that `HYDRADB_TOKEN` is a Railway secret, `TOKEN_FILE=/tmp/hydradb-token`, and the Railway service uses the repository source so the wrapper Dockerfile runs.
+- Railway token-file failure: confirm that `HYDRADB_TOKEN` is a Railway secret, `GRAPH_AUTH_TOKEN_FILE=/tmp/hydradb-token`, and the Railway service uses the repository source so the wrapper Dockerfile runs.
 - Railway port failure: confirm that the private service is named `hydradb`, has no public domain, has no `PORT` variable, and has no direct health-check path. Confirm that the `gateway` domain targets port `8080`. Do not expose `7687`.
 - Vercel environment failure: confirm that all HydraDB variables are set in the Production environment and redeploy Vercel. Do not use a `NEXT_PUBLIC_` prefix for the token.
 - Readiness failure: run `docker compose logs hydradb`, confirm ports `8443` and `9090` are free, and retry after the node reports ready.

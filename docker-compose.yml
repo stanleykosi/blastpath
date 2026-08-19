@@ -9,17 +9,16 @@ services:
       CLOUD_PROVIDER: local
       GRAPH_NAMESPACE: default
       GRAPH_ID: default
-      CELL_ID: cell-0
-      NODE_ID: node-0
+      GRAPH_CELL_ID: cell-0
+      GRAPH_CELLS: cell-0
+      GRAPH_NODE_ID: node-0
       LOCAL_PATH: /data/store
-      STORE_PATH: /data/store
-      CACHE_PATH: /data/cache
-      BOLT_ADDR: 0.0.0.0:7687
-      ADVERTISED_ADDR: hydradb:7687
+      GRAPH_BOLT_NODE_ADDRESSES: node-0=127.0.0.1:7687
+      GRAPH_ADVERTISED_BOLT_ADDR: 127.0.0.1:7687
+      GRAPH_DATA_CACHE_DIR: /data/cache
+      GRAPH_AUTH_TOKEN_FILE: /data/auth-token
       GRAPH_ALLOW_PLAINTEXT: "true"
-      TOKEN_FILE: /run/secrets/hydradb_token
       RUST_MIN_STACK: "33554432"
     volumes:
-      - ./hydradb-data:/data/store
-      - ./hydradb-cache:/data/cache
-      - ./hydradb-token:/run/secrets/hydradb_token:ro
+      - ./hydradb-data:/data
+      - ./hydradb-token:/data/auth-token:ro

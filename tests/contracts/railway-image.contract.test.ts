@@ -19,12 +19,21 @@ describe("Railway HydraDB image", () => {
       path.resolve(process.cwd(), "deploy/railway/hydradb-entrypoint.sh"),
       "utf8",
     );
-    expect(entrypoint).toContain('mkdir -p "$local_path" "$store_path" "$cache_path"');
+    expect(entrypoint).toContain('mkdir -p "$local_path" "$cache_path"');
+    expect(entrypoint).toContain('export GRAPH_AUTH_TOKEN_FILE="$token_file"');
 
     const compose = await readFile(path.resolve(process.cwd(), "docker-compose.yml"), "utf8");
     expect(compose).toContain('GRAPH_ALLOW_PLAINTEXT: "true"');
     expect(compose).toContain("LOCAL_PATH: /data/store");
+    expect(compose).toContain("GRAPH_CELL_ID: cell-0");
+    expect(compose).toContain("GRAPH_CELLS: cell-0");
+    expect(compose).toContain("GRAPH_NODE_ID: node-0");
+    expect(compose).toContain("GRAPH_DATA_CACHE_DIR: /data/cache");
+    expect(compose).toContain("GRAPH_AUTH_TOKEN_FILE: /data/auth-token");
+    expect(compose).toContain("./hydradb-token:/data/auth-token:ro");
     expect(compose).not.toContain("ENABLE_PLAINTEXT");
+    expect(compose).not.toContain("      CELL_ID:");
+    expect(compose).not.toContain("      TOKEN_FILE:");
   });
 
   it("uses one public gateway for both private HydraDB HTTP ports", async () => {

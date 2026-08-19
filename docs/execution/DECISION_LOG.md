@@ -137,3 +137,12 @@ Append only. Implementation agents record deviations and dependency additions he
 - Alternatives rejected: Creating the directories during the image build does not work because the runtime Volume mount hides image-layer contents at `/data`.
 - Affected files: the Railway HydraDB entrypoint, Railway contract tests, the manual live-test guide, and this log.
 - Scope/acceptance: no graph, fixture, Cypher, or golden outcome changed. Railway startup must be manually retried with the new image.
+
+## D018 — Use the official HydraDB 0.1.1 graph runtime variable names
+
+- Date: 2026-08-19.
+- Decision: Replace the generic cell, node, Bolt, cache, and token-file variable names with `GRAPH_CELL_ID`, `GRAPH_CELLS`, `GRAPH_NODE_ID`, `GRAPH_BOLT_NODE_ADDRESSES`, `GRAPH_ADVERTISED_BOLT_ADDR`, `GRAPH_DATA_CACHE_DIR`, and `GRAPH_AUTH_TOKEN_FILE`.
+- Reason/evidence: The official HydraDB 0.1.1 startup example uses these names. The Railway runtime ignored the generic names and failed during placement initialization with an unspecified missing file.
+- Alternatives rejected: Adding more directories cannot correct ignored runtime configuration. The pinned image and persistent `/data` Volume remain unchanged.
+- Affected files: `docker-compose.yml`, the Railway HydraDB entrypoint, HydraDB configuration documentation, the manual live-test guide, Railway contract tests, and this log.
+- Scope/acceptance: no graph, fixture, Cypher, application API, or golden outcome changed. Railway startup requires manual verification.

@@ -28,7 +28,7 @@ Response is `{query_id, columns, rows, read_epoch, next_cursor, bookmark}`. Each
 
 ## Startup configuration
 
-Compose must reproduce the official local-node environment: `CLOUD_PROVIDER=local`, `LOCAL_PATH=/data/store`, graph namespace/id `default`, cell `cell-0`, node `node-0`, Bolt and advertised address, `/data/cache`, token file, plaintext enabled, and `RUST_MIN_STACK=33554432`. Mount a named or ignored host directory; never commit state or token files.
+Compose must reproduce the official HydraDB 0.1.1 local-node environment. Use `CLOUD_PROVIDER=local`, `LOCAL_PATH=/data/store`, `GRAPH_NAMESPACE=default`, `GRAPH_ID=default`, `GRAPH_CELL_ID=cell-0`, `GRAPH_CELLS=cell-0`, and `GRAPH_NODE_ID=node-0`. Set `GRAPH_BOLT_NODE_ADDRESSES`, `GRAPH_ADVERTISED_BOLT_ADDR`, `GRAPH_DATA_CACHE_DIR`, `GRAPH_AUTH_TOKEN_FILE`, `GRAPH_ALLOW_PLAINTEXT=true`, and `RUST_MIN_STACK=33554432`. Mount a named or ignored host directory; never commit state or token files.
 
 ## Required smoke proof
 
