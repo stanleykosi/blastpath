@@ -46,7 +46,11 @@ function normalizeUrl(value: string, variable: string): string {
     hostname === "::1" ||
     (hostname.includes(":") &&
       (hostname.startsWith("fc") || hostname.startsWith("fd") || /^fe[89ab]/.test(hostname)));
-  const isLocal = ["localhost", "hydradb"].includes(hostname) || isPrivateIpv4 || isPrivateIpv6;
+  const isLocal =
+    ["localhost", "hydradb"].includes(hostname) ||
+    hostname.endsWith(".railway.internal") ||
+    isPrivateIpv4 ||
+    isPrivateIpv6;
   if (url.protocol !== "https:" && (url.protocol !== "http:" || !isLocal)) {
     throw new Error(`${variable} must use HTTPS outside local HydraDB hosts`);
   }

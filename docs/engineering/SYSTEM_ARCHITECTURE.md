@@ -13,7 +13,7 @@
 ## Deployment variants
 
 - Local fallback: Docker Compose runs HydraDB on loopback ports and the Next.js production server runs locally.
-- Cloud live demo: Vercel runs the Next.js application and Railway runs the pinned HydraDB image with one persistent `/data` Volume.
+- Cloud live demo: Vercel runs Next.js. Railway runs private HydraDB, a one-domain HTTP gateway, and an automatic one-shot seed service.
 - Cloud verification stays pending until an operator selects a trusted test runner.
 - The cloud variant keeps the same HTTP client, query templates, fixture inputs, graph identities, and golden outcomes. It does not add a second application backend.
 
@@ -66,10 +66,12 @@ lib/
 scripts/seed.ts  scripts/smoke-hydradb.ts
 tests/unit/  tests/contracts/  tests/integration/  tests/e2e/
 public/
-docker-compose.yml  railway.json  vercel.json  .env.example  .gitignore  package.json  package-lock.json
+docker-compose.yml  railway.json  railway.gateway.json  railway.seeder.json  vercel.json
+.env.example  .gitignore  package.json  package-lock.json
 next.config.ts  tsconfig.json  postcss.config.mjs  vitest.config.ts
 playwright.config.ts  eslint.config.mjs  LICENSE
 deploy/railway/Dockerfile  deploy/railway/hydradb-entrypoint.sh
+deploy/railway/gateway/  deploy/railway/seeder/
 ```
 
 ## Module rules

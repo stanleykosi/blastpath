@@ -21,9 +21,9 @@ Only `NEXT_PUBLIC_*` values may enter the browser bundle; P0 requires none.
 
 ## Cloud deployment values
 
-For the Vercel plus Railway live demo, set `HYDRADB_HTTP_URL` and `HYDRADB_ADMIN_URL` to the two Railway HTTPS domains. Keep `HYDRADB_TOKEN` in the Vercel Production environment as a server-only secret. Set `ENABLE_SEED_ROUTE=false` in Vercel. Run seed and integration commands only from a trusted operator-controlled runner, not from the public application.
+For the Vercel plus Railway live demo, set `HYDRADB_HTTP_URL` and `HYDRADB_ADMIN_URL` to the same generated Railway gateway HTTPS domain. The gateway routes readiness to port `9090` and queries to port `8443` over Railway private networking. Keep `HYDRADB_TOKEN` in the Vercel Production environment as a server-only secret. Set `ENABLE_SEED_ROUTE=false` in Vercel.
 
-Railway sets its HydraDB service values separately. Mount one Volume at `/data`, set `STORE_PATH=/data/store`, `CACHE_PATH=/data/cache`, and use `TOKEN_FILE=/tmp/hydradb-token`. The repository entrypoint writes that file from the Railway `HYDRADB_TOKEN` secret at startup.
+Railway sets its HydraDB service values separately. Mount one Volume at `/data`, set `STORE_PATH=/data/store`, `CACHE_PATH=/data/cache`, and use `TOKEN_FILE=/tmp/hydradb-token`. The repository entrypoint writes that file from the Railway `HYDRADB_TOKEN` secret at startup. The private one-shot seeder waits for HydraDB, applies committed fixtures idempotently, and exits successfully.
 
 `BLASTPATH_BASE_URL` is a Playwright test variable only. When set, the Playwright config tests the remote Vercel URL and does not start a local Next.js server.
 

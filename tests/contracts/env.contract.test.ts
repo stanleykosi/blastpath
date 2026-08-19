@@ -29,6 +29,7 @@ describe("environment boundary", () => {
     "http://192.168.1.10:8443",
     "http://[::1]:8443",
     "http://[fd00::10]:8443",
+    "http://hydradb.railway.internal:8443",
   ])("accepts a private or loopback HydraDB URL: %s", (url) => {
     expect(getServerEnv({ ...valid, HYDRADB_HTTP_URL: url }).hydradbHttpUrl).toBe(url);
   });

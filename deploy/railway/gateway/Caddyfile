@@ -1,0 +1,9 @@
+:8080 {
+	handle /readyz {
+		reverse_proxy http://hydradb.railway.internal:9090
+	}
+
+	handle {
+		reverse_proxy http://hydradb.railway.internal:8443
+	}
+}

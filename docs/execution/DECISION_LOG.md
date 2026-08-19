@@ -92,3 +92,12 @@ Append only. Implementation agents record deviations and dependency additions he
 - Alternatives rejected: Keeping an unused workflow would add configuration and secret-management work before Railway is ready.
 - Affected files: `.github/workflows/cloud-live-test.yml`, `README.md`, `docs/quality/MANUAL_LIVE_TEST.md`, `docs/engineering/SYSTEM_ARCHITECTURE.md`, `docs/engineering/CONFIGURATION.md`, and this log.
 - Scope/acceptance: no production code or test file changed. Live HydraDB, integration, and Playwright checks remain pending.
+
+## D013 — Railway uses a generated-domain gateway and automatic seeder
+
+- Date: 2026-08-19.
+- Decision: Keep HydraDB private, route its two HTTP ports through one Railway gateway domain, and run fixture ingestion from a private one-shot Railway seed service on each deployment.
+- Reason/evidence: The user has no custom domain and requires automatic seed after deployment. Railway provides one generated domain per service and private `railway.internal` DNS between services.
+- Alternatives rejected: Exposing Bolt is unnecessary. Two custom domains require domain ownership. A public seed route increases attack surface.
+- Affected files: Railway deployment files, environment validation, Railway contract tests, cloud documentation, and this log.
+- Scope/acceptance: fixtures, Cypher, graph identities, and golden outcomes do not change. Live Railway behavior remains pending manual verification.

@@ -15,13 +15,13 @@ Confirm that you have:
 - a GitHub repository that contains this project;
 - a Vercel account connected to that repository;
 - a Railway account connected to that repository;
-- permission to create a Railway Volume and public HTTPS domains;
+- permission to create a Railway Volume and one generated public HTTPS domain;
 
 Do not put a HydraDB token in GitHub workflow text, a Vercel public variable, or a browser variable.
 
 ### C2. Create the Railway HydraDB service
 
-In Railway, create a project and add a service from the GitHub repository. Do not select the Docker Image source. The repository contains `railway.json`, which selects `deploy/railway/Dockerfile`. Railway builds this wrapper remotely from the pinned image `ghcr.io/hydra-db/hydradb:0.1.1`.
+In Railway, create a project and add a service from the GitHub repository. Name the service `hydradb`. Set its config file path to `/railway.json`. Do not select the Docker Image source. Railway builds the wrapper from the pinned image `ghcr.io/hydra-db/hydradb:0.1.1`.
 
 The wrapper creates the token file from the `HYDRADB_TOKEN` Railway secret. It does not save the secret in the repository.
 
@@ -37,7 +37,7 @@ Add one persistent Volume to the HydraDB service with mount path:
 
 The wrapper uses `/data/store` and `/data/cache` inside this single Volume. Do not add a second Volume for the cache.
 
-### C4. Add Railway variables
+### C4. Add the private HydraDB variables
 
 Add these service variables. Add `HYDRADB_TOKEN` as a secret variable.
 
@@ -60,31 +60,53 @@ HYDRADB_TOKEN=<set-as-a-Railway-secret>
 
 `PORT=9090` tells Railway to use the HydraDB admin port for the deployment health check. HydraDB still serves its HTTP query port on `8443`.
 
-### C5. Create Railway domains
+`CLOUD_PROVIDER=local` selects HydraDB filesystem storage. The filesystem is the persistent Railway Volume, not temporary container storage. `BOLT_ADDR` and `ADVERTISED_ADDR` configure HydraDB node communication. Port `7687` stays private and BlastPath does not use it.
 
-Create two Railway public HTTPS domains for the same service:
+### C5. Add the Railway gateway service
 
-1. Set one domain target port to `8443`. This is the HydraDB HTTP URL.
-2. Set one domain target port to `9090`. This is the HydraDB admin URL.
-
-Do not create a public domain or TCP proxy for port `7687`.
-
-The two resulting values must be HTTPS URLs without a trailing slash:
+Add a second service from the same GitHub repository. Name it `gateway` and set its config file path to `/railway.gateway.json`. Add this variable:
 
 ```text
-HYDRADB_HTTP_URL=https://<railway-http-domain>
-HYDRADB_ADMIN_URL=https://<railway-admin-domain>
+PORT=8080
 ```
 
-Railway must report the deployment as active. Its `/readyz` health check must return HTTP 200.
+Generate one Railway public domain for the gateway and target port `8080`. Do not add a domain to the `hydradb` service. Do not create a TCP proxy.
 
-### C6. Check remote HydraDB readiness
+The gateway sends `/readyz` to the private admin port and all graph query paths to the private query port. Use the same generated HTTPS URL for both application variables:
+
+```text
+HYDRADB_HTTP_URL=https://<gateway-domain>
+HYDRADB_ADMIN_URL=https://<gateway-domain>
+```
+
+### C6. Add the automatic seed service
+
+Add a third service from the same GitHub repository. Name it `seeder` and set its config file path to `/railway.seeder.json`. Add these variables:
+
+```text
+HYDRADB_HTTP_URL=http://hydradb.railway.internal:8443
+HYDRADB_ADMIN_URL=http://hydradb.railway.internal:9090
+HYDRADB_NAMESPACE=default
+HYDRADB_GRAPH_ID=default
+HYDRADB_CELL_ID=cell-0
+HYDRADB_TOKEN=<the-same-secret-as-the-hydradb-service>
+HYDRADB_TIMEOUT_MS=15000
+BLASTPATH_FIXTURE_ROOT=./fixtures
+ENABLE_SEED_ROUTE=false
+LOG_LEVEL=info
+SEED_MAX_ATTEMPTS=30
+SEED_RETRY_SECONDS=10
+```
+
+The service waits for private HydraDB readiness, runs the idempotent fixture seed, prints the verified seed summary, and exits successfully. Railway starts it again on each repository deployment. It has no public domain.
+
+### C7. Check remote HydraDB readiness
 
 Run this from any shell with `curl`. This does not start Docker:
 
 ```bash
 export HYDRADB_TOKEN='<copy-the-Railway-secret-without-printing-it>'
-export HYDRADB_ADMIN_URL='https://<railway-admin-domain>'
+export HYDRADB_ADMIN_URL='https://<gateway-domain>'
 curl --fail --silent --show-error \
   --header "Authorization: Bearer ${HYDRADB_TOKEN}" \
   "${HYDRADB_ADMIN_URL}/readyz"
@@ -93,7 +115,7 @@ unset HYDRADB_TOKEN HYDRADB_ADMIN_URL
 
 Expected: a successful readiness response. Do not continue if this check fails.
 
-### C7. Deploy the application to Vercel
+### C8. Connect the Vercel application
 
 In Vercel, import the same GitHub repository. Use these settings:
 
@@ -107,8 +129,8 @@ Root directory: ./
 Add these variables to the Vercel Production environment:
 
 ```text
-HYDRADB_HTTP_URL=https://<railway-http-domain>
-HYDRADB_ADMIN_URL=https://<railway-admin-domain>
+HYDRADB_HTTP_URL=https://<gateway-domain>
+HYDRADB_ADMIN_URL=https://<gateway-domain>
 HYDRADB_NAMESPACE=default
 HYDRADB_GRAPH_ID=default
 HYDRADB_CELL_ID=cell-0
@@ -121,7 +143,7 @@ LOG_LEVEL=info
 
 Redeploy after you add or change variables. Keep `HYDRADB_TOKEN` server-only. Never add `NEXT_PUBLIC_` to its name.
 
-### C8. Record the Vercel URL
+### C9. Record the Vercel URL
 
 Replace the value below with the Vercel production URL:
 
@@ -129,7 +151,7 @@ Replace the value below with the Vercel production URL:
 export BLASTPATH_BASE_URL='https://<vercel-production-domain>'
 ```
 
-The application can report an unseeded graph at this point. The health check must pass after the cloud seed in C10. After C10 completes, run:
+The application can report an unseeded graph while the seed service is running. After the `seeder` deployment exits successfully, run:
 
 ```bash
 curl --fail --silent --show-error \
@@ -150,7 +172,7 @@ Expected data after the seed is:
 
 The response is wrapped in the API `data` and `meta` fields. This check passes only after the graph is seeded.
 
-### C9. Defer automated cloud live checks
+### C10. Defer automated cloud live checks
 
 No GitHub Actions live-test workflow is committed. Do not put the HydraDB token in repository settings or a public application route. After Railway is ready, select a trusted test runner before you run the smoke, seed, integration, and Playwright commands.
 

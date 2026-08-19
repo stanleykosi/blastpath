@@ -58,7 +58,7 @@ Every graph identity uses a stable positive decimal string. IDs stay safe when t
 For the live demo, the recommended setup is Vercel plus Railway:
 
 - Vercel runs the Next.js application.
-- Railway runs the pinned HydraDB image and stores the graph in one persistent Volume.
+- Railway runs private HydraDB, a one-domain HTTP gateway, and an automatic seed service.
 - Live checks stay pending until an operator selects a trusted test runner.
 - The test machine does not need Docker.
 
