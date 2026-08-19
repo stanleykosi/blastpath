@@ -21,4 +21,30 @@ describe("HydraDB HTTP response bounds", () => {
       message: "HydraDB returned an oversized response.",
     });
   });
+
+  it("retains only a bounded safe HydraDB error code and message", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        Response.json(
+          {
+            error: {
+              code: "INVALID_QUERY",
+              message: "Relationship mutation failed; token=must-not-appear",
+              internal: "not retained",
+            },
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+    const client = new HydradbClient(
+      getServerEnv({ HYDRADB_TOKEN: "local-token-that-is-long-enough" }),
+    );
+
+    await expect(client.query("test", "RETURN 1", {})).rejects.toMatchObject({
+      code: "HYDRADB_PROTOCOL_ERROR",
+      detail: "INVALID_QUERY: Relationship mutation failed; token=[REDACTED]",
+    });
+  });
 });

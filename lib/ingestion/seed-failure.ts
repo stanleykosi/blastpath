@@ -6,6 +6,7 @@ export type SeedFailureRecord = {
     message: string;
     status?: number;
     queryId?: string;
+    detail?: string;
     batchIndex?: number;
     label?: string;
     type?: string;
@@ -20,6 +21,7 @@ export function seedFailureRecord(error: unknown): SeedFailureRecord {
   };
   if (error instanceof AppError) record.status = error.status;
   if (error instanceof HydradbError && error.queryId) record.queryId = error.queryId;
+  if (error instanceof HydradbError && error.detail) record.detail = error.detail;
   if (error instanceof HydradbBatchError) {
     record.batchIndex = error.batchIndex;
     if (error.batchKind === "node") record.label = error.batchValue;

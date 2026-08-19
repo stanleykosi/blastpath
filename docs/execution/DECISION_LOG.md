@@ -155,3 +155,12 @@ Append only. Implementation agents record deviations and dependency additions he
 - Alternatives rejected: Raw stack traces can disclose internal details. An unstructured generic error would not identify the failed HydraDB operation.
 - Affected files: the seed command, Railway contract tests, and this log.
 - Scope/acceptance: seed behavior and retry behavior do not change. The next manual deployment must provide the visible failure record.
+
+## D020 — Retain bounded HydraDB error details for seed diagnostics
+
+- Date: 2026-08-20.
+- Decision: On a non-success HTTP response, retain only HydraDB's JSON error code and message. Limit the body to 4 KiB, limit the detail to 240 characters, remove control characters, and redact sensitive assignments.
+- Reason/evidence: The relationship batch error proved that transport and node writes worked, but the client discarded the server reason needed to correct the mutation query.
+- Alternatives rejected: Logging the raw response can expose internal data. Keeping only the HTTP status cannot distinguish parser, identity, and mutation failures.
+- Affected files: the HydraDB client, HydraDB error type, seed-failure record, unit tests, and this log.
+- Scope/acceptance: successful query behavior does not change. Tokens, headers, parameters, and unapproved response fields remain excluded.

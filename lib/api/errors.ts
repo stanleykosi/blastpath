@@ -45,15 +45,17 @@ export class AppError extends Error {
 
 export class HydradbError extends AppError {
   readonly queryId?: string;
+  readonly detail?: string;
 
   constructor(
     code: "HYDRADB_PROTOCOL_ERROR" | "HYDRADB_UNAVAILABLE" | "HYDRADB_TIMEOUT",
     message: string,
-    options?: { queryId?: string; cause?: unknown; retryable?: boolean },
+    options?: { queryId?: string; cause?: unknown; retryable?: boolean; detail?: string },
   ) {
     super(code, message, options?.retryable ?? code !== "HYDRADB_PROTOCOL_ERROR", options?.cause);
     this.name = "HydradbError";
     this.queryId = options?.queryId;
+    this.detail = options?.detail;
   }
 }
 
@@ -79,6 +81,7 @@ export class HydradbBatchError extends HydradbError {
       queryId: hydradbCause?.queryId,
       cause,
       retryable: hydradbCause?.retryable ?? false,
+      detail: hydradbCause?.detail,
     });
     this.name = "HydradbBatchError";
     this.batchIndex = batchIndex;

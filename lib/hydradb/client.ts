@@ -14,6 +14,69 @@ export type QueryResult = {
 };
 
 export const MAX_HYDRADB_RESPONSE_BYTES = 1024 * 1024;
+const MAX_HYDRADB_ERROR_BYTES = 4096;
+const MAX_HYDRADB_ERROR_TEXT = 240;
+const SENSITIVE_ERROR_TEXT =
+  /\b(authorization|token|secret|password|cookie)(\s*[:=]\s*)([^\s,;]+)/gi;
+
+function safeErrorText(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const normalized = value
+    .replace(/[\u0000-\u001f\u007f]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_HYDRADB_ERROR_TEXT)
+    .replace(SENSITIVE_ERROR_TEXT, "$1$2[REDACTED]");
+  return normalized || undefined;
+}
+
+async function readHydradbErrorDetail(response: Response): Promise<string | undefined> {
+  const contentLength = response.headers.get("content-length");
+  if (
+    contentLength !== null &&
+    (!/^\d+$/.test(contentLength) || Number(contentLength) > MAX_HYDRADB_ERROR_BYTES)
+  )
+    return undefined;
+  if (!response.body) return undefined;
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    totalBytes += value.byteLength;
+    if (totalBytes > MAX_HYDRADB_ERROR_BYTES) {
+      await reader.cancel().catch(() => undefined);
+      return undefined;
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  try {
+    const body = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)) as unknown;
+    if (typeof body !== "object" || body === null) return undefined;
+    const record = body as Record<string, unknown>;
+    const nested =
+      typeof record.error === "object" && record.error !== null
+        ? (record.error as Record<string, unknown>)
+        : undefined;
+    const code = safeErrorText(nested?.code ?? record.code);
+    const message = safeErrorText(
+      typeof record.error === "string" ? record.error : (nested?.message ?? record.message),
+    );
+    if (code && message) return `${code}: ${message}`;
+    return message ?? code;
+  } catch {
+    return undefined;
+  }
+}
 
 async function readHydradbJson(
   response: Response,
@@ -114,9 +177,11 @@ export class HydradbClient {
       if (!response.ok) {
         const safeStatus =
           response.status >= 500 ? "HYDRADB_UNAVAILABLE" : "HYDRADB_PROTOCOL_ERROR";
+        const detail = await readHydradbErrorDetail(response);
         throw new HydradbError(safeStatus, `HydraDB returned HTTP ${response.status}.`, {
           queryId,
           retryable: response.status >= 500,
+          detail,
         });
       }
       const body = await readHydradbJson(response, controller, queryId);
