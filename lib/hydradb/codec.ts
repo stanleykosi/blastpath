@@ -1,0 +1,171 @@
+import { HydradbError } from "@/lib/api/errors";
+
+export type DecodedPath = {
+  nodeIds: string[];
+  edgeIds: string[];
+  weight?: number;
+  cost?: number;
+};
+
+const tags = new Set([
+  "integer",
+  "float",
+  "string",
+  "boolean",
+  "vertex_id",
+  "edge_id",
+  "path",
+  "list",
+  "null",
+]);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function decimalId(value: unknown): string {
+  if (typeof value === "number" && Number.isSafeInteger(value) && value > 0) return String(value);
+  if (typeof value === "string" && /^[1-9]\d*$/.test(value)) return value;
+  throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid numeric ID.");
+}
+
+export function decodeTaggedValue(value: unknown): unknown {
+  if (!isRecord(value)) {
+    throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned a malformed tagged value.");
+  }
+  const type = value.type;
+  if (typeof type !== "string" || !tags.has(type)) {
+    throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an unknown value tag.");
+  }
+  if (!("value" in value)) {
+    throw new HydradbError(
+      "HYDRADB_PROTOCOL_ERROR",
+      "HydraDB returned a tagged value without a value.",
+    );
+  }
+  const raw = value.value;
+  switch (type) {
+    case "integer":
+      if (typeof raw !== "number" || !Number.isSafeInteger(raw))
+        throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid integer.");
+      return raw;
+    case "float":
+      if (typeof raw !== "number" || !Number.isFinite(raw))
+        throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid float.");
+      return raw;
+    case "string":
+      if (typeof raw !== "string")
+        throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid string.");
+      return raw;
+    case "boolean":
+      if (typeof raw !== "boolean")
+        throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid boolean.");
+      return raw;
+    case "vertex_id":
+    case "edge_id":
+      return decimalId(raw);
+    case "null":
+      if (raw !== null)
+        throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid null value.");
+      return null;
+    case "list":
+      if (!Array.isArray(raw))
+        throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid list.");
+      return raw.map(decodeTaggedValue);
+    case "path":
+      return decodePathValue(raw);
+  }
+}
+
+function decodePathValue(raw: unknown): DecodedPath {
+  if (!isRecord(raw))
+    throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned a malformed path.");
+  const rawNodes = raw.nodes ?? raw.vertices;
+  const rawEdges = raw.edges ?? raw.relationships ?? raw.rels;
+  if (!Array.isArray(rawNodes) || !Array.isArray(rawEdges)) {
+    throw new HydradbError(
+      "HYDRADB_PROTOCOL_ERROR",
+      "HydraDB returned a path without nodes or edges.",
+    );
+  }
+  const nodeIds = rawNodes.map((node) => {
+    if (isRecord(node) && "type" in node) return decimalId(decodeTaggedValue(node));
+    if (isRecord(node)) return decimalId(node.id ?? node.vertex_id);
+    return decimalId(node);
+  });
+  const edgeIds = rawEdges.map((edge) => {
+    if (isRecord(edge) && "type" in edge) return decimalId(decodeTaggedValue(edge));
+    if (isRecord(edge)) return decimalId(edge.id ?? edge.edge_id);
+    return decimalId(edge);
+  });
+  const weight = typeof raw.weight === "number" ? raw.weight : undefined;
+  const cost = typeof raw.cost === "number" ? raw.cost : undefined;
+  if (edgeIds.length !== nodeIds.length - 1) {
+    throw new HydradbError(
+      "HYDRADB_PROTOCOL_ERROR",
+      "HydraDB returned a path with invalid cardinality.",
+    );
+  }
+  if (edgeIds.length > 8 || new Set(nodeIds).size !== nodeIds.length) {
+    throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid path shape.");
+  }
+  return { nodeIds, edgeIds, weight, cost };
+}
+
+export type HydradbEnvelope = {
+  query_id: string;
+  columns: string[];
+  rows: unknown[][];
+  read_epoch?: number;
+  next_cursor?: string | null;
+  bookmark?: string | null;
+};
+
+export function decodeEnvelope(input: unknown): {
+  queryId: string;
+  columns: string[];
+  rows: unknown[][];
+  bookmark?: string;
+} {
+  if (
+    !isRecord(input) ||
+    typeof input.query_id !== "string" ||
+    !Array.isArray(input.columns) ||
+    !Array.isArray(input.rows)
+  ) {
+    throw new HydradbError(
+      "HYDRADB_PROTOCOL_ERROR",
+      "HydraDB returned an invalid response envelope.",
+    );
+  }
+  const columns = input.columns.map((column) => {
+    if (typeof column !== "string")
+      throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid column name.");
+    return column;
+  });
+  const rows = input.rows.map((row) => {
+    if (!Array.isArray(row))
+      throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid row.");
+    if (row.length !== columns.length)
+      throw new HydradbError(
+        "HYDRADB_PROTOCOL_ERROR",
+        "HydraDB returned a row with invalid width.",
+      );
+    return row.map(decodeTaggedValue);
+  });
+  return {
+    queryId: input.query_id,
+    columns,
+    rows,
+    bookmark: typeof input.bookmark === "string" ? input.bookmark : undefined,
+  };
+}
+
+export function rowsAsRecords(decoded: {
+  columns: string[];
+  rows: unknown[][];
+}): Array<Record<string, unknown>> {
+  return decoded.rows.map((row) =>
+    Object.fromEntries(decoded.columns.map((column, index) => [column, row[index]])),
+  );
+}

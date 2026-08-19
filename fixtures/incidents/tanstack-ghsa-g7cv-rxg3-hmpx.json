@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "GHSA-g7cv-rxg3-hmpx",
+  "sourceUrl": "https://osv.dev/vulnerability/GHSA-g7cv-rxg3-hmpx",
+  "sourceApiUrl": "https://api.osv.dev/v1/vulns/GHSA-g7cv-rxg3-hmpx",
+  "summary": "Malware in @tanstack/* packages exfiltrates cloud credentials, GitHub tokens, and SSH keys",
+  "severity": "critical",
+  "windowStart": "2026-05-11T19:20:00Z",
+  "windowEnd": "2026-05-11T19:26:00Z",
+  "scopeNotice": "Safe normalized demo subset: the full advisory covers 84 malicious versions across 42 packages.",
+  "affected": [
+    {
+      "ecosystem": "npm",
+      "name": "@tanstack/router-core",
+      "version": "1.169.5",
+      "fixedVersion": "1.169.9"
+    }
+  ]
+}

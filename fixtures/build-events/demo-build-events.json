@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "synthetic": true,
+  "events": [
+    { "buildId": "checkout-1842", "repositorySlug": "checkout-service", "commitSha": "1111111111111111111111111111111111111111", "timestamp": "2026-05-11T19:23:00Z", "environment": "production", "lockfileSha256": "6ef87b87178490c8b2fd82303da8ea9498e206d3b36c0a697fbba9c2bba1167e" },
+    { "buildId": "admin-731", "repositorySlug": "admin-console", "commitSha": "2222222222222222222222222222222222222222", "timestamp": "2026-05-11T18:45:00Z", "environment": "production", "lockfileSha256": "16833e86d798db8da8780c70cfbad2992693eaf18549f3b051436d16132f8d9e" },
+    { "buildId": "analytics-506", "repositorySlug": "analytics-worker", "commitSha": "3333333333333333333333333333333333333333", "timestamp": "2026-05-11T19:24:00Z", "environment": "production", "lockfileSha256": "36e87f8dbf5b024802cefc0371c07871b4503540ca79ab2864c4be161318b57e" }
+  ]
+}

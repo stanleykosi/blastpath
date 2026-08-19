@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "incidentId": "GHSA-g7cv-rxg3-hmpx",
+  "metrics": { "totalServices": 3, "impactedServices": 2, "confirmedExecution": 1, "safeServices": 1, "exposurePaths": 2 },
+  "services": [
+    { "slug": "checkout-service", "status": "confirmed_execution", "path": ["checkout-service", "@blastpath/checkout-shell@4.2.0", "@blastpath/demo-platform@2.4.0", "@tanstack/router-core@1.169.5"] },
+    { "slug": "admin-console", "status": "current_resolution_only", "path": ["admin-console", "@blastpath/admin-shell@3.8.0", "@blastpath/demo-platform@2.4.0", "@tanstack/router-core@1.169.5"] },
+    { "slug": "analytics-worker", "status": "safe", "path": null }
+  ],
+  "topChokepoint": { "package": "@blastpath/demo-platform", "version": "2.4.0", "serviceCount": 2, "pathCount": 2 },
+  "replay": { "action": "exclude edge @blastpath/demo-platform@2.4.0 -> @tanstack/router-core@1.169.5", "baselineImpactedServices": 2, "simulatedImpactedServices": 0, "baselineExposurePaths": 2, "simulatedExposurePaths": 0 }
+}

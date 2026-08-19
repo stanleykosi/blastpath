@@ -1,0 +1,76 @@
+# Decision log
+
+Append only. Implementation agents record deviations and dependency additions here.
+
+## D001 — Track and concept
+
+- Decision: Track 2A, BlastPath incident-response product.
+- Why: strongest two-day graph-native fit and deterministic demo.
+- Consequence: no parallel Track 1/3 work.
+
+## D002 — Fixed stack
+
+- Decision: one Next.js 16/TypeScript application, native HydraDB HTTP, Zod, Tailwind, Vitest, Playwright, Docker Compose.
+- Why: one language/deployable and minimal boundaries.
+- Consequence: no Bolt driver, ORM, second API service, or database.
+
+## D003 — Version-level graph
+
+- Decision: exact `PackageVersion` nodes and directed dependency edges; JSON-safe deterministic 53-bit IDs.
+- Why: advisories affect versions and HydraDB needs numeric IDs.
+
+## D004 — Truth model
+
+- Decision: current path and build-window evidence are separate; three impacted confidence states plus safe.
+- Why: lockfiles cannot prove historical execution.
+
+## D005 — Replay semantics
+
+- Decision: non-mutating simulation excludes selected edges from HydraDB-returned candidate paths; it is not a resolver or persisted graph mutation.
+- Why: deterministic safety and demo reliability.
+
+## D006 — Code before execution
+
+- Decision: author all P0 production/test code before executing any project command, then verify once in ordered layers.
+- Requested by: user.
+- Consequence: Phase A audit is mandatory; Phase B failures are repaired in subsystem batches.
+
+## Entry template
+
+`## DNNN — title` then date, decision, reason/evidence, alternatives rejected, affected files, and whether scope/acceptance changes. Never rewrite prior entries.
+
+## D007 — Phase A complete under write-first execution override
+
+- Date: 2026-08-18.
+- Decision: Complete the P0 source tree, tests, configuration, Compose file, license, and manual live-test guide before any project execution. Run only the user-approved non-live checks in Phase B. Leave HydraDB, application, integration, browser, and end-to-end actions for manual verification.
+- Reason/evidence: The user explicitly required write-all-code-first and prohibited all live actions during this run. The read-only audit found the target routes, P0 modules, required UI states, query ownership, tests, and safety boundaries present.
+- Alternatives rejected: Running a partial test or starting a local service before the P0 code-complete gate would violate the repository runbook and user execution order.
+- Affected files: all P0 source, test, configuration, and documentation files created in this implementation pass.
+- Scope/acceptance: no product scope or golden expectation changed. HydraDB image digest and live syntax remain pending manual verification.
+
+## D008 — Non-live build uses Webpack
+
+- Date: 2026-08-18.
+- Decision: Set the production build script to `next build --webpack` and disable the Next.js Webpack build worker.
+- Reason/evidence: The restricted non-live runner does not permit the Turbopack CSS worker to bind its internal process port. The single-process Webpack path builds the same application bundle without contacting HydraDB.
+- Alternatives rejected: Starting a live service or weakening the CSS pipeline would violate the execution override or reduce product quality.
+- Affected files: `package.json`, `next.config.ts`.
+- Scope/acceptance: no product behavior, query, fixture, or golden expectation changed.
+
+## D009 — Cloud live deployment uses Vercel and Railway
+
+- Date: 2026-08-19.
+- Decision: Add Vercel configuration for the Next.js application, Railway configuration for a remote HydraDB wrapper, and a manual GitHub Actions cloud live-test workflow.
+- Reason/evidence: The user does not want to install Docker dependencies on the test machine. Vercel provides the Node.js application runtime. Railway can build the pinned GHCR image remotely and persist both HydraDB store paths under one `/data` Volume. GitHub Actions can run the live seed and browser checks without local Docker.
+- Alternatives rejected: Cloudflare was not selected because the current application already uses the Vercel-compatible Node.js runtime and the user requested Vercel plus Railway. A second application backend was rejected because it would change the fixed architecture.
+- Affected files: `vercel.json`, `railway.json`, `deploy/railway/Dockerfile`, `deploy/railway/hydradb-entrypoint.sh`, `.github/workflows/cloud-live-test.yml`, `playwright.config.ts`, `.gitignore`, `docs/quality/MANUAL_LIVE_TEST.md`, `README.md`, and this log.
+- Scope/acceptance: no product behavior, query, fixture, or golden expectation changed. Cloud account, image entrypoint, Railway port mapping, and live HydraDB behavior remain pending manual verification.
+
+## D010 — Railway wrapper retains the pinned HydraDB command
+
+- Date: 2026-08-19.
+- Decision: Set `CMD ["graph-node"]` after the custom token-file entrypoint.
+- Reason/evidence: A new Docker `ENTRYPOINT` removes the command inherited from the pinned base image. The official HydraDB image documentation identifies `graph-node` as the image entrypoint. The wrapper must receive that command after it creates the token file.
+- Alternatives rejected: Starting the wrapper with no command stops the container. Using `latest` or a guessed binary would break the pinned deployment contract.
+- Affected files: `deploy/railway/Dockerfile`, `tests/contracts/railway-image.contract.test.ts`, and this log.
+- Scope/acceptance: no product scope or golden expectation changed. The pinned image startup command is no longer pending verification.

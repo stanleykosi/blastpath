@@ -1,0 +1,48 @@
+{
+  "name": "blastpath",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HydraDB incident command console for software supply-chain exposure",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "format:check": "prettier --check \"app/**/*.{ts,tsx,css}\" \"components/**/*.tsx\" \"lib/**/*.ts\" \"scripts/**/*.{ts,mjs}\" \"tests/**/*.{ts,tsx}\" \"*.{ts,tsx,mjs,json}\"",
+    "seed": "tsx scripts/seed.ts",
+    "seed:dry": "tsx scripts/seed.ts --dry-run",
+    "smoke:hydradb": "tsx scripts/smoke-hydradb.ts",
+    "test:unit": "vitest run tests/unit",
+    "test:contracts": "vitest run tests/contracts",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "playwright test",
+    "verify:environment": "node scripts/verify-environment.mjs",
+    "verify:final": "npm run seed && npm run test:integration",
+    "verify": "npm run verify:environment && npm run format:check && npm run lint && npm run typecheck && npm run test:unit && npm run test:contracts && npm run smoke:hydradb && npm run seed:dry && npm run seed && npm run test:integration && npm run build && npm run test:e2e && npm run verify:final"
+  },
+  "dependencies": {
+    "next": "16.0.1",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "zod": "4.1.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@tailwindcss/postcss": "4.1.14",
+    "@types/node": "24.7.2",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "eslint": "9.38.0",
+    "eslint-config-next": "16.0.1",
+    "prettier": "3.6.2",
+    "tailwindcss": "4.1.14",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  }
+}
