@@ -11,6 +11,9 @@ describe("Railway HydraDB image", () => {
     expect(dockerfile).toContain("FROM ghcr.io/hydra-db/hydradb:0.1.1");
     expect(dockerfile).toContain('ENTRYPOINT ["/usr/local/bin/blastpath-hydradb-entrypoint"]');
     expect(dockerfile).toContain('CMD ["graph-node"]');
+
+    const config = await readFile(path.resolve(process.cwd(), "railway.json"), "utf8");
+    expect(config).not.toContain("healthcheckPath");
   });
 
   it("uses one public gateway for both private HydraDB HTTP ports", async () => {

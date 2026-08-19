@@ -101,3 +101,12 @@ Append only. Implementation agents record deviations and dependency additions he
 - Alternatives rejected: Exposing Bolt is unnecessary. Two custom domains require domain ownership. A public seed route increases attack surface.
 - Affected files: Railway deployment files, environment validation, Railway contract tests, cloud documentation, and this log.
 - Scope/acceptance: fixtures, Cypher, graph identities, and golden outcomes do not change. Live Railway behavior remains pending manual verification.
+
+## D014 — Gateway owns the Railway readiness check
+
+- Date: 2026-08-19.
+- Decision: Remove the direct Railway HTTP health check and `PORT` variable from the private HydraDB service. Keep `/readyz` as the gateway deployment health check and as the authenticated application readiness check.
+- Reason/evidence: The private database does not need a Railway public-web health gate. The gateway has one HTTP port and can route readiness to HydraDB port `9090`.
+- Alternatives rejected: A direct Railway probe cannot supply the HydraDB bearer token. Keeping two readiness owners caused an avoidable deployment failure.
+- Affected files: `railway.json`, Railway contract tests, the manual live-test guide, and this log.
+- Scope/acceptance: no graph, fixture, query, or application behavior changed. Live Railway verification remains pending.

@@ -54,13 +54,12 @@ ADVERTISED_ADDR=hydradb.railway.internal:7687
 ENABLE_PLAINTEXT=true
 TOKEN_FILE=/tmp/hydradb-token
 RUST_MIN_STACK=33554432
-PORT=9090
 HYDRADB_TOKEN=<set-as-a-Railway-secret>
 ```
 
-`PORT=9090` tells Railway to use the HydraDB admin port for the deployment health check. HydraDB still serves its HTTP query port on `8443`.
-
 `CLOUD_PROVIDER=local` selects HydraDB filesystem storage. The filesystem is the persistent Railway Volume, not temporary container storage. `BOLT_ADDR` and `ADVERTISED_ADDR` configure HydraDB node communication. Port `7687` stays private and BlastPath does not use it.
+
+Do not configure a Railway health-check path or `PORT` variable on the private `hydradb` service. The public `gateway` service checks `/readyz` and the private `seeder` service retries until HydraDB is ready.
 
 ### C5. Add the Railway gateway service
 
@@ -425,7 +424,7 @@ This removes only the local HydraDB data directories and containers for this rep
 - Authentication failure: check that `hydradb-token` is readable by Docker, `.env.local` has the same token, and no token has a trailing line break.
 - Railway image pull failure: confirm that Railway can read `ghcr.io/hydra-db/hydradb:0.1.1`. Add only a read-only GHCR package credential if the package is private. Do not use `latest` or replace the pinned image.
 - Railway token-file failure: confirm that `HYDRADB_TOKEN` is a Railway secret, `TOKEN_FILE=/tmp/hydradb-token`, and the Railway service uses the repository source so the wrapper Dockerfile runs.
-- Railway port failure: confirm that `PORT=9090`, the healthcheck path is `/readyz`, one public domain targets `8443`, and one public domain targets `9090`. Do not expose `7687`.
+- Railway port failure: confirm that the private service is named `hydradb`, has no public domain, has no `PORT` variable, and has no direct health-check path. Confirm that the `gateway` domain targets port `8080`. Do not expose `7687`.
 - Vercel environment failure: confirm that all HydraDB variables are set in the Production environment and redeploy Vercel. Do not use a `NEXT_PUBLIC_` prefix for the token.
 - Readiness failure: run `docker compose logs hydradb`, confirm ports `8443` and `9090` are free, and retry after the node reports ready.
 - Query failure: run `npm run smoke:hydradb` first. If smoke fails, do not continue to seed. Save only the HTTP status, safe error code, and query ID.
