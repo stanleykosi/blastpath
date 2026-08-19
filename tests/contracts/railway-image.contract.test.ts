@@ -15,6 +15,12 @@ describe("Railway HydraDB image", () => {
     const config = await readFile(path.resolve(process.cwd(), "railway.json"), "utf8");
     expect(config).not.toContain("healthcheckPath");
 
+    const entrypoint = await readFile(
+      path.resolve(process.cwd(), "deploy/railway/hydradb-entrypoint.sh"),
+      "utf8",
+    );
+    expect(entrypoint).toContain('mkdir -p "$local_path" "$store_path" "$cache_path"');
+
     const compose = await readFile(path.resolve(process.cwd(), "docker-compose.yml"), "utf8");
     expect(compose).toContain('GRAPH_ALLOW_PLAINTEXT: "true"');
     expect(compose).toContain("LOCAL_PATH: /data/store");

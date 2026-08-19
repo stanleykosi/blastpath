@@ -128,3 +128,12 @@ Append only. Implementation agents record deviations and dependency additions he
 - Alternatives rejected: Removing persistent local storage would lose the graph on redeployment. `STORE_PATH` alone does not configure the local provider.
 - Affected files: `docker-compose.yml`, HydraDB integration documentation, the manual live-test guide, Railway contract tests, and this log.
 - Scope/acceptance: no application behavior, fixture, Cypher, or golden outcome changed. Railway startup must be manually retried.
+
+## D017 — Create HydraDB directories after the Railway Volume mount
+
+- Date: 2026-08-19.
+- Decision: Create `LOCAL_PATH`, `STORE_PATH`, and `CACHE_PATH` in the HydraDB entrypoint before `graph-node` starts.
+- Reason/evidence: Railway mounted the Volume at `/data`, but a new Volume did not contain `/data/store`. HydraDB failed while canonicalizing the missing local-provider path.
+- Alternatives rejected: Creating the directories during the image build does not work because the runtime Volume mount hides image-layer contents at `/data`.
+- Affected files: the Railway HydraDB entrypoint, Railway contract tests, the manual live-test guide, and this log.
+- Scope/acceptance: no graph, fixture, Cypher, or golden outcome changed. Railway startup must be manually retried with the new image.

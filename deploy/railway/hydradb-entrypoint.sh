@@ -3,6 +3,12 @@ set -eu
 
 : "${HYDRADB_TOKEN:?HYDRADB_TOKEN is required}"
 
+local_path="${LOCAL_PATH:-/data/store}"
+store_path="${STORE_PATH:-$local_path}"
+cache_path="${CACHE_PATH:-/data/cache}"
+
+mkdir -p "$local_path" "$store_path" "$cache_path"
+
 token_file="${TOKEN_FILE:-/tmp/hydradb-token}"
 token_directory=$(dirname "$token_file")
 umask 077

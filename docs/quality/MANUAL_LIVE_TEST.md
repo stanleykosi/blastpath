@@ -24,6 +24,7 @@ Do not put a HydraDB token in GitHub workflow text, a Vercel public variable, or
 In Railway, create a project and add a service from the GitHub repository. Name the service `hydradb`. Set its config file path to `/railway.json`. Do not select the Docker Image source. Railway builds the wrapper from the pinned image `ghcr.io/hydra-db/hydradb:0.1.1`.
 
 The wrapper creates the token file from the `HYDRADB_TOKEN` Railway secret. It does not save the secret in the repository.
+After Railway mounts an empty Volume, the wrapper also creates `/data/store` and `/data/cache` before HydraDB starts.
 
 If the pinned GHCR image is private, add a read-only GitHub Container Registry credential in Railway before the first build. Do not change the image tag. If the image is not available to the Railway builder, stop and record the pull error. Do not replace the image with an unapproved image.
 
