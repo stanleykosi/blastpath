@@ -74,3 +74,21 @@ Append only. Implementation agents record deviations and dependency additions he
 - Alternatives rejected: Starting the wrapper with no command stops the container. Using `latest` or a guessed binary would break the pinned deployment contract.
 - Affected files: `deploy/railway/Dockerfile`, `tests/contracts/railway-image.contract.test.ts`, and this log.
 - Scope/acceptance: no product scope or golden expectation changed. The pinned image startup command is no longer pending verification.
+
+## D011 — Vercel uses one deterministic npm installation path
+
+- Date: 2026-08-19.
+- Decision: Pin Node.js 22 and npm 10.9.2, use `npm ci` for Vercel, CI, local setup, and verification, and reserve `npm install <package>` for explicit dependency changes.
+- Reason/evidence: Vercel blocked the original Next.js 16.0.1 deployment. The security update requires a committed lockfile and one repeatable installation command.
+- Alternatives rejected: `npm install` for deployments can change the dependency tree. The Vercel vulnerable-version bypass would keep a known security defect.
+- Affected files: `package.json`, `package-lock.json`, `vercel.json`, `.github/workflows/cloud-live-test.yml`, `README.md`, `docs/quality/MANUAL_LIVE_TEST.md`, `next.config.ts`, and this log.
+- Scope/acceptance: no product behavior, query, fixture, or golden expectation changed. Next.js is 16.3.1, React is 19.2.6, and the production dependency audit has zero findings.
+
+## D012 — Defer the GitHub Actions live-test runner
+
+- Date: 2026-08-19.
+- Decision: Remove the manual GitHub Actions cloud live-test workflow until it is needed.
+- Reason/evidence: The user requested that the repository not include this workflow now.
+- Alternatives rejected: Keeping an unused workflow would add configuration and secret-management work before Railway is ready.
+- Affected files: `.github/workflows/cloud-live-test.yml`, `README.md`, `docs/quality/MANUAL_LIVE_TEST.md`, `docs/engineering/SYSTEM_ARCHITECTURE.md`, `docs/engineering/CONFIGURATION.md`, and this log.
+- Scope/acceptance: no production code or test file changed. Live HydraDB, integration, and Playwright checks remain pending.

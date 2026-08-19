@@ -2,7 +2,7 @@
 
 Status: pending manual verification.
 
-Run the cloud procedure after the non-live checks pass. It uses Vercel for the application, Railway for HydraDB, and GitHub Actions for the live checks. It does not need Docker on the test machine.
+Run the cloud procedure after the non-live checks pass. It uses Vercel for the application and Railway for HydraDB. Automated cloud live checks are deferred until an operator selects a trusted test runner.
 
 ## Cloud procedure: Vercel plus Railway
 
@@ -16,7 +16,6 @@ Confirm that you have:
 - a Vercel account connected to that repository;
 - a Railway account connected to that repository;
 - permission to create a Railway Volume and public HTTPS domains;
-- permission to add GitHub Actions secrets.
 
 Do not put a HydraDB token in GitHub workflow text, a Vercel public variable, or a browser variable.
 
@@ -100,7 +99,7 @@ In Vercel, import the same GitHub repository. Use these settings:
 
 ```text
 Framework preset: Next.js
-Install command: npm install
+Install command: npm ci
 Build command: npm run build
 Root directory: ./
 ```
@@ -151,34 +150,9 @@ Expected data after the seed is:
 
 The response is wrapped in the API `data` and `meta` fields. This check passes only after the graph is seeded.
 
-### C9. Add GitHub Actions secrets
+### C9. Defer automated cloud live checks
 
-In GitHub, open the repository settings and add these Actions secrets:
-
-```text
-HYDRADB_HTTP_URL
-HYDRADB_ADMIN_URL
-HYDRADB_TOKEN
-```
-
-Use the Railway values. Do not add `BLASTPATH_BASE_URL` as a repository secret. The workflow receives it as a manual input.
-
-### C10. Run the cloud live workflow
-
-In GitHub, open `Actions` → `BlastPath cloud live test` → `Run workflow`. Enter the Vercel production URL in `app_url`.
-
-The workflow runs these checks on a GitHub runner. It installs Node packages and Chromium on the runner, not on the test machine:
-
-1. Vercel health check.
-2. HydraDB write/read/delete smoke proof.
-3. Fixture dry-run.
-4. Real seed.
-5. Real HydraDB integration tests.
-6. Remote Playwright journey.
-7. Second seed and integration idempotency check.
-8. Baseline check after containment replay.
-
-The workflow file is `.github/workflows/cloud-live-test.yml`. Do not run it until Railway and Vercel are ready.
+No GitHub Actions live-test workflow is committed. Do not put the HydraDB token in repository settings or a public application route. After Railway is ready, select a trusted test runner before you run the smoke, seed, integration, and Playwright commands.
 
 ### C11. Open the cloud dashboard
 
@@ -195,7 +169,7 @@ Use the dashboard workflow in the local procedure below. The expected values are
 For a normal repeat test:
 
 1. Keep the Railway Volume.
-2. Run the seed workflow again.
+2. Run the approved seed command again from the selected trusted runner.
 3. Confirm that IDs, counts, paths, and classifications stay the same.
 
 For a fresh graph, stop the Railway service and delete its Volume. Volume deletion removes the graph data. Create a new `/data` Volume before the next seed. Keep the Vercel deployment unless you also want to remove the application.
@@ -215,7 +189,7 @@ docker --version
 docker compose version
 ```
 
-Expected: Node.js 22 or later, npm, Docker, and Docker Compose are available.
+Expected: Node.js 22, npm 10, Docker, and Docker Compose are available.
 
 ## 2. Create the environment file
 
@@ -446,7 +420,7 @@ BlastPath live test result
 Date/time and timezone:
 Vercel URL:
 Railway project/service:
-GitHub Actions run URL:
+Live-test runner:
 Node/npm/Docker versions:
 HydraDB image digest:
 HydraDB readiness: PASS / FAIL

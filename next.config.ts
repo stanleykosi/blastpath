@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   experimental: {
+    useTypeScriptCli: false,
     webpackBuildWorker: false,
   },
 };

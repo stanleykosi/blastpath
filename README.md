@@ -59,14 +59,14 @@ For the live demo, the recommended setup is Vercel plus Railway:
 
 - Vercel runs the Next.js application.
 - Railway runs the pinned HydraDB image and stores the graph in one persistent Volume.
-- GitHub Actions runs the smoke, seed, integration, and Playwright checks.
+- Live checks stay pending until an operator selects a trusted test runner.
 - The test machine does not need Docker.
 
 Use [docs/quality/MANUAL_LIVE_TEST.md](docs/quality/MANUAL_LIVE_TEST.md) for the exact cloud setup.
 
 For local fallback testing, requirements are:
 
-- Node.js 22 or later;
+- Node.js 22;
 - npm;
 - Docker and Docker Compose;
 - an authenticated local HydraDB node.
@@ -74,7 +74,7 @@ For local fallback testing, requirements are:
 Install the declared packages and create the local environment file:
 
 ```bash
-npm install
+npm ci
 cp .env.example .env.local
 ```
 
@@ -93,7 +93,7 @@ Start HydraDB and run the seed only after the readiness check passes. Use the co
 The required check order is:
 
 ```bash
-npm install
+npm ci
 npm run format:check
 npm run lint
 npm run typecheck

@@ -14,7 +14,7 @@
 
 - Local fallback: Docker Compose runs HydraDB on loopback ports and the Next.js production server runs locally.
 - Cloud live demo: Vercel runs the Next.js application and Railway runs the pinned HydraDB image with one persistent `/data` Volume.
-- Cloud verification: GitHub Actions runs the smoke, fixture dry-run, seed, integration, idempotency, baseline, and remote Playwright checks.
+- Cloud verification stays pending until an operator selects a trusted test runner.
 - The cloud variant keeps the same HTTP client, query templates, fixture inputs, graph identities, and golden outcomes. It does not add a second application backend.
 
 Pin exact resolved versions in `package-lock.json`. Do not add a second backend, ORM, relational database, auth system, state library, or graph-computation library.
@@ -70,7 +70,6 @@ docker-compose.yml  railway.json  vercel.json  .env.example  .gitignore  package
 next.config.ts  tsconfig.json  postcss.config.mjs  vitest.config.ts
 playwright.config.ts  eslint.config.mjs  LICENSE
 deploy/railway/Dockerfile  deploy/railway/hydradb-entrypoint.sh
-.github/workflows/cloud-live-test.yml
 ```
 
 ## Module rules

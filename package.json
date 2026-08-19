@@ -4,8 +4,9 @@
   "private": true,
   "description": "HydraDB incident command console for software supply-chain exposure",
   "license": "MIT",
+  "packageManager": "npm@10.9.2",
   "engines": {
-    "node": ">=22.0.0"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "next dev",
@@ -26,9 +27,9 @@
     "verify": "npm run verify:environment && npm run format:check && npm run lint && npm run typecheck && npm run test:unit && npm run test:contracts && npm run smoke:hydradb && npm run seed:dry && npm run seed && npm run test:integration && npm run build && npm run test:e2e && npm run verify:final"
   },
   "dependencies": {
-    "next": "16.0.1",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
+    "next": "16.3.1",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
     "zod": "4.1.5"
   },
   "devDependencies": {
@@ -38,11 +39,11 @@
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
     "eslint": "9.38.0",
-    "eslint-config-next": "16.0.1",
+    "eslint-config-next": "16.3.1",
     "prettier": "3.6.2",
     "tailwindcss": "4.1.14",
     "tsx": "4.20.6",
     "typescript": "5.9.3",
-    "vitest": "3.2.4"
+    "vitest": "3.2.7"
   }
 }
