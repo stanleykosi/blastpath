@@ -11,6 +11,7 @@ services:
       GRAPH_ID: default
       CELL_ID: cell-0
       NODE_ID: node-0
+      LOCAL_PATH: /data/store
       STORE_PATH: /data/store
       CACHE_PATH: /data/cache
       BOLT_ADDR: 0.0.0.0:7687

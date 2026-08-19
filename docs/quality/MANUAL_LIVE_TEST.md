@@ -47,6 +47,7 @@ GRAPH_NAMESPACE=default
 GRAPH_ID=default
 CELL_ID=cell-0
 NODE_ID=hydradb
+LOCAL_PATH=/data/store
 STORE_PATH=/data/store
 CACHE_PATH=/data/cache
 BOLT_ADDR=0.0.0.0:7687
@@ -57,7 +58,7 @@ RUST_MIN_STACK=33554432
 HYDRADB_TOKEN=<set-as-a-Railway-secret>
 ```
 
-`CLOUD_PROVIDER=local` selects HydraDB filesystem storage. The filesystem is the persistent Railway Volume, not temporary container storage. `BOLT_ADDR` and `ADVERTISED_ADDR` configure HydraDB node communication. Port `7687` stays private and BlastPath does not use it.
+`CLOUD_PROVIDER=local` selects HydraDB filesystem storage. `LOCAL_PATH=/data/store` supplies its required path in the persistent Railway Volume. `BOLT_ADDR` and `ADVERTISED_ADDR` configure HydraDB node communication. Port `7687` stays private and BlastPath does not use it.
 
 Do not configure a Railway health-check path or `PORT` variable on the private `hydradb` service. The public `gateway` service checks `/readyz` and the private `seeder` service retries until HydraDB is ready.
 

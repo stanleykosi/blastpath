@@ -28,7 +28,7 @@ Response is `{query_id, columns, rows, read_epoch, next_cursor, bookmark}`. Each
 
 ## Startup configuration
 
-Compose must reproduce the official local-node environment: `CLOUD_PROVIDER=local`, existing `/data/store`, graph namespace/id `default`, cell `cell-0`, node `node-0`, Bolt and advertised address, `/data/cache`, token file, plaintext enabled, and `RUST_MIN_STACK=33554432`. Mount a named or ignored host directory; never commit state or token files.
+Compose must reproduce the official local-node environment: `CLOUD_PROVIDER=local`, `LOCAL_PATH=/data/store`, graph namespace/id `default`, cell `cell-0`, node `node-0`, Bolt and advertised address, `/data/cache`, token file, plaintext enabled, and `RUST_MIN_STACK=33554432`. Mount a named or ignored host directory; never commit state or token files.
 
 ## Required smoke proof
 

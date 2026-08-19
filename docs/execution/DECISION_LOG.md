@@ -119,3 +119,12 @@ Append only. Implementation agents record deviations and dependency additions he
 - Alternatives rejected: Adding graph TLS certificate secrets is unnecessary because HydraDB stays inside Railway private networking and the public gateway provides HTTPS.
 - Affected files: `docker-compose.yml`, the manual live-test guide, Railway contract tests, and this log.
 - Scope/acceptance: no application behavior, fixtures, Cypher, or golden outcomes changed. Railway startup must be manually retried.
+
+## D016 — Set the HydraDB local-provider path
+
+- Date: 2026-08-19.
+- Decision: Set `LOCAL_PATH=/data/store` when `CLOUD_PROVIDER=local`.
+- Reason/evidence: The real HydraDB 0.1.1 Railway runtime rejected a null `LOCAL_PATH` value after it accepted the plaintext setting.
+- Alternatives rejected: Removing persistent local storage would lose the graph on redeployment. `STORE_PATH` alone does not configure the local provider.
+- Affected files: `docker-compose.yml`, HydraDB integration documentation, the manual live-test guide, Railway contract tests, and this log.
+- Scope/acceptance: no application behavior, fixture, Cypher, or golden outcome changed. Railway startup must be manually retried.

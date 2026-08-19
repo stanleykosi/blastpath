@@ -17,6 +17,7 @@ describe("Railway HydraDB image", () => {
 
     const compose = await readFile(path.resolve(process.cwd(), "docker-compose.yml"), "utf8");
     expect(compose).toContain('GRAPH_ALLOW_PLAINTEXT: "true"');
+    expect(compose).toContain("LOCAL_PATH: /data/store");
     expect(compose).not.toContain("ENABLE_PLAINTEXT");
   });
 
