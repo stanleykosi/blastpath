@@ -62,5 +62,8 @@ describe("Railway HydraDB image", () => {
     expect(dockerfile).toContain("RUN npm ci");
     expect(runner).toContain("npm run seed -- --fixtures ./fixtures");
     expect(runner).toContain("SEED_MAX_ATTEMPTS");
+
+    const seedCommand = await readFile(path.resolve(process.cwd(), "scripts/seed.ts"), "utf8");
+    expect(seedCommand).toContain("BlastPath seed failed:");
   });
 });

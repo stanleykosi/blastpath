@@ -146,3 +146,12 @@ Append only. Implementation agents record deviations and dependency additions he
 - Alternatives rejected: Adding more directories cannot correct ignored runtime configuration. The pinned image and persistent `/data` Volume remain unchanged.
 - Affected files: `docker-compose.yml`, the Railway HydraDB entrypoint, HydraDB configuration documentation, the manual live-test guide, Railway contract tests, and this log.
 - Scope/acceptance: no graph, fixture, Cypher, application API, or golden outcome changed. Railway startup requires manual verification.
+
+## D019 — Make seed failures visible in Railway logs
+
+- Date: 2026-08-20.
+- Decision: Prefix the safe JSON seed-failure record with `BlastPath seed failed:`.
+- Reason/evidence: Railway received the JSON record on standard error but displayed a blank structured-log message. A text prefix makes the existing safe code, message, query ID, and batch fields visible.
+- Alternatives rejected: Raw stack traces can disclose internal details. An unstructured generic error would not identify the failed HydraDB operation.
+- Affected files: the seed command, Railway contract tests, and this log.
+- Scope/acceptance: seed behavior and retry behavior do not change. The next manual deployment must provide the visible failure record.

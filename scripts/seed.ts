@@ -16,7 +16,7 @@ async function main(): Promise<void> {
     const result = await runSeed(parseArgs(process.argv.slice(2)));
     process.stdout.write(`${JSON.stringify(result)}\n`);
   } catch (error) {
-    process.stderr.write(`${JSON.stringify(seedFailureRecord(error))}\n`);
+    process.stderr.write(`BlastPath seed failed: ${JSON.stringify(seedFailureRecord(error))}\n`);
     process.exitCode = 1;
   }
 }
