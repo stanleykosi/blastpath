@@ -27,6 +27,16 @@ function decimalId(value: unknown): string {
   throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid numeric ID.");
 }
 
+function pathIntegerProperty(value: unknown): string {
+  if (!isRecord(value) || Object.keys(value).length !== 1 || !("Integer" in value)) {
+    throw new HydradbError(
+      "HYDRADB_PROTOCOL_ERROR",
+      "HydraDB returned a path relationship without a stable ID.",
+    );
+  }
+  return decimalId(value.Integer);
+}
+
 export function decodeTaggedValue(value: unknown): unknown {
   if (!isRecord(value)) {
     throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned a malformed tagged value.");
@@ -93,13 +103,30 @@ function decodePathValue(raw: unknown): DecodedPath {
       throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid path node.");
     return decimalId(node.id);
   });
-  const edgeIds = rawEdges.map((edge) => {
+  const edgeIds = rawEdges.map((edge, index) => {
     if (!isRecord(edge))
       throw new HydradbError(
         "HYDRADB_PROTOCOL_ERROR",
         "HydraDB returned an invalid path relationship.",
       );
-    return decimalId(edge.id);
+    decimalId(edge.id);
+    if (edge.edge_type !== "DEPENDS_ON" || !isRecord(edge.properties)) {
+      throw new HydradbError(
+        "HYDRADB_PROTOCOL_ERROR",
+        "HydraDB returned an invalid path relationship.",
+      );
+    }
+    const source = decimalId(edge.src);
+    const target = decimalId(edge.dst);
+    const left = nodeIds[index];
+    const right = nodeIds[index + 1];
+    if (!((source === left && target === right) || (source === right && target === left))) {
+      throw new HydradbError(
+        "HYDRADB_PROTOCOL_ERROR",
+        "HydraDB returned a path relationship with invalid endpoints.",
+      );
+    }
+    return pathIntegerProperty(edge.properties.id);
   });
   if (edgeIds.length !== nodeIds.length - 1) {
     throw new HydradbError(

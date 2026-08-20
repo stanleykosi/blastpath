@@ -13,10 +13,18 @@ describe("HydraDB tagged protocol", () => {
         type: "path",
         value: {
           nodes: [{ id: 1 }, { id: 2 }],
-          relationships: [{ id: 3 }],
+          relationships: [
+            {
+              id: 3,
+              edge_type: "DEPENDS_ON",
+              src: 1,
+              dst: 2,
+              properties: { id: { Integer: 103 } },
+            },
+          ],
         },
       }),
-    ).toEqual({ nodeIds: ["1", "2"], edgeIds: ["3"] });
+    ).toEqual({ nodeIds: ["1", "2"], edgeIds: ["103"] });
   });
 
   it("decodes the official null tag without a value field", () => {
@@ -44,7 +52,13 @@ describe("HydraDB tagged protocol", () => {
       type: "path",
       value: {
         nodes: nodeIds.map((id) => ({ id })),
-        relationships: edgeIds.map((id) => ({ id })),
+        relationships: edgeIds.map((id, index) => ({
+          id: id + 1_000,
+          edge_type: "DEPENDS_ON",
+          src: nodeIds[index],
+          dst: nodeIds[index + 1],
+          properties: { id: { Integer: id } },
+        })),
       },
     });
 
@@ -57,5 +71,25 @@ describe("HydraDB tagged protocol", () => {
       ),
     ).toThrow(/invalid path shape/);
     expect(() => decodeTaggedValue(pathValue([1, 2, 1], [101, 102]))).toThrow(/invalid path shape/);
+  });
+
+  it("rejects a native relationship without its stored stable ID", () => {
+    expect(() =>
+      decodeTaggedValue({
+        type: "path",
+        value: {
+          nodes: [{ id: 1 }, { id: 2 }],
+          relationships: [
+            {
+              id: 3,
+              edge_type: "DEPENDS_ON",
+              src: 1,
+              dst: 2,
+              properties: {},
+            },
+          ],
+        },
+      }),
+    ).toThrow(/without a stable ID/);
   });
 });
