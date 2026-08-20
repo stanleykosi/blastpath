@@ -12,8 +12,8 @@ describe("HydraDB repository protocol boundaries", () => {
     const client = {
       readWithRetry: async () =>
         result(
-          ["id", "labels", "key", "name", "version", "source_ref"],
-          [["1", ["Mystery"], "mystery:1", "Mystery", null, null]],
+          ["id", "label", "key", "name", "version", "source_ref"],
+          [["1", "Mystery", "mystery:1", "Mystery", null, null]],
         ),
     };
     const repository = new HydraRepository(client as never);
@@ -261,9 +261,10 @@ describe("HydraDB repository protocol boundaries", () => {
         consistency: QueryConsistency,
       ) => {
         consistencies.push(consistency);
-        if (operation === "seed-node-counts")
-          return result(["labels", "count"], [[["Service"], 3]]);
-        if (operation === "seed-edge-counts") return result(["type", "count"], [["DEPENDS_ON", 7]]);
+        if (operation === "seed-node-count-service") return result(["count"], [[3]]);
+        if (operation === "seed-edge-count-depends_on") return result(["count"], [[7]]);
+        if (operation.startsWith("seed-node-count-") || operation.startsWith("seed-edge-count-"))
+          return result(["count"], [[0]]);
         return result(["version_id"], [["42"]]);
       },
     };
@@ -276,7 +277,8 @@ describe("HydraDB repository protocol boundaries", () => {
       edgesByType: { DEPENDS_ON: 7 },
       affectedVersionIds: ["42"],
     });
-    expect(consistencies).toEqual(["strong", "strong", "strong"]);
+    expect(consistencies).toHaveLength(20);
+    expect(consistencies.every((consistency) => consistency === "strong")).toBe(true);
   });
 
   it("strong-reads every stored node and relationship identity", async () => {
@@ -289,9 +291,10 @@ describe("HydraDB repository protocol boundaries", () => {
         consistency: QueryConsistency,
       ) => {
         consistencies.push(consistency);
-        return operation === "seed-node-identities"
-          ? result(["id"], [["20"], ["10"]])
-          : result(["id"], [["40"], ["30"]]);
+        if (operation === "seed-node-identities") return result(["id"], [["20"], ["10"]]);
+        if (operation === "seed-edge-identities-depends_on")
+          return result(["id"], [["40"], ["30"]]);
+        return result(["id"], []);
       },
     };
     const repository = new HydraRepository(client as never);
@@ -300,6 +303,7 @@ describe("HydraDB repository protocol boundaries", () => {
       nodeIds: ["10", "20"],
       edgeIds: ["30", "40"],
     });
-    expect(consistencies).toEqual(["strong", "strong"]);
+    expect(consistencies).toHaveLength(11);
+    expect(consistencies.every((consistency) => consistency === "strong")).toBe(true);
   });
 });

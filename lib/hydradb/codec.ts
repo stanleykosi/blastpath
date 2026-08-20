@@ -3,17 +3,15 @@ import { HydradbError } from "@/lib/api/errors";
 export type DecodedPath = {
   nodeIds: string[];
   edgeIds: string[];
-  weight?: number;
-  cost?: number;
 };
 
 const tags = new Set([
   "integer",
+  "signed_integer",
   "float",
   "string",
   "boolean",
   "vertex_id",
-  "edge_id",
   "path",
   "list",
   "null",
@@ -46,6 +44,7 @@ export function decodeTaggedValue(value: unknown): unknown {
   const raw = value.value;
   switch (type) {
     case "integer":
+    case "signed_integer":
       if (typeof raw !== "number" || !Number.isSafeInteger(raw))
         throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid integer.");
       return raw;
@@ -62,7 +61,6 @@ export function decodeTaggedValue(value: unknown): unknown {
         throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid boolean.");
       return raw;
     case "vertex_id":
-    case "edge_id":
       return decimalId(raw);
     case "null":
       if (raw !== null)
@@ -80,8 +78,8 @@ export function decodeTaggedValue(value: unknown): unknown {
 function decodePathValue(raw: unknown): DecodedPath {
   if (!isRecord(raw))
     throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned a malformed path.");
-  const rawNodes = raw.nodes ?? raw.vertices;
-  const rawEdges = raw.edges ?? raw.relationships ?? raw.rels;
+  const rawNodes = raw.nodes;
+  const rawEdges = raw.relationships;
   if (!Array.isArray(rawNodes) || !Array.isArray(rawEdges)) {
     throw new HydradbError(
       "HYDRADB_PROTOCOL_ERROR",
@@ -89,17 +87,18 @@ function decodePathValue(raw: unknown): DecodedPath {
     );
   }
   const nodeIds = rawNodes.map((node) => {
-    if (isRecord(node) && "type" in node) return decimalId(decodeTaggedValue(node));
-    if (isRecord(node)) return decimalId(node.id ?? node.vertex_id);
-    return decimalId(node);
+    if (!isRecord(node))
+      throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid path node.");
+    return decimalId(node.id);
   });
   const edgeIds = rawEdges.map((edge) => {
-    if (isRecord(edge) && "type" in edge) return decimalId(decodeTaggedValue(edge));
-    if (isRecord(edge)) return decimalId(edge.id ?? edge.edge_id);
-    return decimalId(edge);
+    if (!isRecord(edge))
+      throw new HydradbError(
+        "HYDRADB_PROTOCOL_ERROR",
+        "HydraDB returned an invalid path relationship.",
+      );
+    return decimalId(edge.id);
   });
-  const weight = typeof raw.weight === "number" ? raw.weight : undefined;
-  const cost = typeof raw.cost === "number" ? raw.cost : undefined;
   if (edgeIds.length !== nodeIds.length - 1) {
     throw new HydradbError(
       "HYDRADB_PROTOCOL_ERROR",
@@ -109,7 +108,7 @@ function decodePathValue(raw: unknown): DecodedPath {
   if (edgeIds.length > 8 || new Set(nodeIds).size !== nodeIds.length) {
     throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid path shape.");
   }
-  return { nodeIds, edgeIds, weight, cost };
+  return { nodeIds, edgeIds };
 }
 
 export type HydradbEnvelope = {
@@ -117,7 +116,7 @@ export type HydradbEnvelope = {
   columns: string[];
   rows: unknown[][];
   read_epoch?: number;
-  next_cursor?: string | null;
+  next_cursor?: number | null;
   bookmark?: string | null;
 };
 

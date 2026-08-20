@@ -173,3 +173,12 @@ Append only. Implementation agents record deviations and dependency additions he
 - Alternatives rejected: One unlabeled query is rejected by HydraDB. A dynamic label would violate the fixed-Cypher security boundary. Changing fixtures would change the approved graph.
 - Affected files: HydraDB queries, repository edge batching, query contract tests, repository protocol tests, HydraDB integration documentation, and this log.
 - Scope/acceptance: graph identities, relationship identities, fixtures, and golden outcomes do not change. Railway seeding requires manual verification.
+
+## D022 — Use only the HydraDB v0.1.1 HTTP and Cypher contract
+
+- Date: 2026-08-20.
+- Decision: Pin the compatibility audit to HydraDB tag `v0.1.1`, commit `02a40025d2d57e97ab2754c8256219cdbfeab379`. Replace unsupported seed projections with fixed per-label and per-type queries that use `count(*)`. Store a validated `node_label` scalar for node hydration. Decode the official `signed_integer` tag and numeric cursor, and remove the unsupported `edge_id` tag. Use causal consistency for writes and sequential strong reads for seed verification.
+- Reason/evidence: HydraDB `src/bin/graph_node/config.rs`, `src/client/http.rs`, `src/client/service.rs`, `src/query/opencypher.rs`, `src/query/algebra.rs`, and `cypher-compat.md` define the exact runtime variables, HTTP envelope, value tags, consistency rules, path record shape, and supported Cypher subset. The Railway error confirmed that `RETURN labels(n), count(n)` is outside that subset.
+- Alternatives rejected: Generic label or relationship-type functions are not supported in HydraDB 0.1.1. Guessed response tags and concurrent reads on one bookmark-bearing client do not follow the pinned protocol.
+- Affected files: HydraDB queries, repository, codec, contract tests, graph schema, HydraDB integration documentation, and this log.
+- Scope/acceptance: graph identities, fixture inputs, application APIs, and golden outcomes do not change. Live Railway seeding remains pending manual verification.

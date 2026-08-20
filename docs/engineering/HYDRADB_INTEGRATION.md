@@ -24,7 +24,7 @@ HTTP request body:
 }
 ```
 
-Response is `{query_id, columns, rows, read_epoch, next_cursor, bookmark}`. Each cell is tagged, for example `{type:"integer",value:1}`, `{type:"vertex_id",value:2}`, `{type:"string",value:"x"}`, or `{type:"path",value:{...}}`. Decoder must reject an unknown tag with `HYDRADB_PROTOCOL_ERROR`; do not cast blindly.
+Response is `{query_id, columns, rows, read_epoch, next_cursor, bookmark}`. `next_cursor` is a numeric offset when it is present. The official value tags are `null`, `vertex_id`, `integer`, `signed_integer`, `float`, `boolean`, `string`, `list`, and `path`. A path contains raw node and relationship records. The decoder must reject an unknown tag with `HYDRADB_PROTOCOL_ERROR`; do not cast blindly.
 
 ## Startup configuration
 
@@ -62,6 +62,8 @@ SET r.source_ref = row.source_ref, r.fixture = row.fixture
 
 Create a separate literal template per allowed relationship type and endpoint-label pair. `DEPENDS_ON` has separate `Service -> PackageVersion` and `PackageVersion -> PackageVersion` templates. Never interpolate user input; select from a closed mapping in code. HydraDB requires exactly one label on each endpoint and one directed one-hop relationship pattern per batch.
 
+Each node also stores `node_label` from the batch row. HydraDB 0.1.1 cannot project `labels(n)`, so bounded hydration returns this validated scalar property.
+
 ## Read templates
 
 Affected entry points:
@@ -96,7 +98,9 @@ Metadata hydration should use bounded ID lookups. If one multi-ID query is unsup
 
 - Writes use unique `query_id`; deterministic `MERGE` IDs make reruns safe.
 - Preserve the latest returned bookmark during a seed run.
-- The final seed verification uses `consistency:"strong"` and checks `SeedRun.key = "blastpath-demo-v1"`.
+- The final seed verification uses sequential `consistency:"strong"` reads. It uses one fixed `MATCH (n:Label) RETURN count(*)` query per node label and one fixed typed relationship query per relationship type. HydraDB 0.1.1 does not support `labels(n)`, `type(r)`, or `count(n)`.
+- All mutation requests use `consistency:"causal"`. Strong consistency is a read option in HydraDB 0.1.1.
+- The seed marker checks `SeedRun.key = "blastpath-demo-v1"`.
 - Normal dashboard reads use `causal`; retry once on transient network/5xx with 150 ms jitter. Do not retry validation, auth, or Cypher 4xx errors.
 
 ## Known limitations to design around

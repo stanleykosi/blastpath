@@ -1,4 +1,12 @@
-import { QUERIES, NODE_QUERY_BY_LABEL, EDGE_QUERY_BY_KIND, QUERY_IDS } from "@/lib/hydradb/queries";
+import {
+  EDGE_COUNT_QUERY_BY_TYPE,
+  EDGE_IDENTITIES_QUERY_BY_TYPE,
+  EDGE_QUERY_BY_KIND,
+  NODE_COUNT_QUERY_BY_LABEL,
+  NODE_QUERY_BY_LABEL,
+  QUERIES,
+  QUERY_IDS,
+} from "@/lib/hydradb/queries";
 import { HydradbClient, isDecodedPath, type QueryConsistency } from "@/lib/hydradb/client";
 import { rowsAsRecords, type DecodedPath } from "@/lib/hydradb/codec";
 import { HydradbBatchError, HydradbError, AppError } from "@/lib/api/errors";
@@ -9,7 +17,6 @@ import type {
   Id,
   NormalizedIncident,
   NodeLabel,
-  RelationshipType,
   ServiceEvidence,
 } from "@/lib/domain/types";
 import { pathId } from "@/lib/ingestion/id";
@@ -27,19 +34,6 @@ const NODE_LABELS: readonly NodeLabel[] = [
   "Advisory",
   "SeedRun",
 ];
-const RELATIONSHIP_TYPES: readonly RelationshipType[] = [
-  "OWNS",
-  "PRODUCES",
-  "HAS_LOCKFILE",
-  "DEPENDS_ON",
-  "RESOLVES",
-  "USES",
-  "HAS_BUILD",
-  "VERSION_OF",
-  "AFFECTS",
-  "SEEDED",
-];
-
 type EdgeWriteKind = keyof typeof EDGE_QUERY_BY_KIND;
 
 function edgeWriteKind(edge: GraphEdge): EdgeWriteKind {
@@ -265,12 +259,8 @@ export class HydraRepository {
     const row = result.rows[0];
     if (!row)
       throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB could not hydrate a path node.");
-    const labels = Array.isArray(row.labels)
-      ? row.labels.filter((label): label is string => typeof label === "string")
-      : [];
-    const label = labels.find((value): value is NodeLabel =>
-      NODE_LABELS.includes(value as NodeLabel),
-    );
+    const rawLabel = asString(row.label, "node label");
+    const label = NODE_LABELS.includes(rawLabel as NodeLabel) ? (rawLabel as NodeLabel) : undefined;
     if (!label)
       throw new HydradbError(
         "HYDRADB_PROTOCOL_ERROR",
@@ -303,16 +293,9 @@ export class HydraRepository {
     const row = result.rows[0];
     if (!row)
       throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB could not hydrate a path edge.");
-    const rawType = asString(row.type, "edge type");
-    if (!RELATIONSHIP_TYPES.includes(rawType as RelationshipType))
-      throw new HydradbError(
-        "HYDRADB_PROTOCOL_ERROR",
-        "HydraDB returned an unknown relationship type.",
-      );
-    const type = rawType as RelationshipType;
     return {
       id: asId(row.id, "edge ID"),
-      type,
+      type: "DEPENDS_ON",
       key: asString(row.key, "edge key"),
       source: asId(row.source, "edge source"),
       target: asId(row.target, "edge target"),
@@ -382,40 +365,37 @@ export class HydraRepository {
     const normalizedKey = advisoryKey.startsWith("advisory:")
       ? advisoryKey
       : `advisory:${advisoryKey}`;
-    const [nodes, edges, affected] = await Promise.all([
-      this.execute("seed-node-counts", QUERIES.seedNodeCounts, {}, "strong", false),
-      this.execute("seed-edge-counts", QUERIES.seedEdgeCounts, {}, "strong", false),
-      this.execute(
-        "seed-affected-versions",
-        QUERIES.affectedVersions,
-        { advisory_key: normalizedKey },
+    const nodesByLabel: Record<string, number> = {};
+    for (const [label, query] of Object.entries(NODE_COUNT_QUERY_BY_LABEL)) {
+      const result = await this.execute(
+        `seed-node-count-${label.toLowerCase()}`,
+        query,
+        {},
         "strong",
         false,
-      ),
-    ]);
-    const nodesByLabel: Record<string, number> = {};
-    for (const row of nodes.rows) {
-      const labels = Array.isArray(row.labels)
-        ? row.labels.filter((label): label is string => typeof label === "string")
-        : [];
-      const label = labels.find((value) => NODE_LABELS.includes(value as NodeLabel));
-      if (!label)
-        throw new HydradbError(
-          "HYDRADB_PROTOCOL_ERROR",
-          "HydraDB returned an unknown node label during seed verification.",
-        );
-      nodesByLabel[label] = asNumber(row.count, "seed node count");
+      );
+      const count = asNumber(result.rows[0]?.count, "seed node count");
+      if (count > 0) nodesByLabel[label] = count;
     }
     const edgesByType: Record<string, number> = {};
-    for (const row of edges.rows) {
-      const type = asString(row.type, "seed relationship type");
-      if (!RELATIONSHIP_TYPES.includes(type as RelationshipType))
-        throw new HydradbError(
-          "HYDRADB_PROTOCOL_ERROR",
-          "HydraDB returned an unknown relationship type during seed verification.",
-        );
-      edgesByType[type] = asNumber(row.count, "seed relationship count");
+    for (const [type, query] of Object.entries(EDGE_COUNT_QUERY_BY_TYPE)) {
+      const result = await this.execute(
+        `seed-edge-count-${type.toLowerCase()}`,
+        query,
+        {},
+        "strong",
+        false,
+      );
+      const count = asNumber(result.rows[0]?.count, "seed relationship count");
+      if (count > 0) edgesByType[type] = count;
     }
+    const affected = await this.execute(
+      "seed-affected-versions",
+      QUERIES.affectedVersions,
+      { advisory_key: normalizedKey },
+      "strong",
+      false,
+    );
     return {
       nodesByLabel,
       edgesByType,
@@ -426,18 +406,32 @@ export class HydraRepository {
   }
 
   async seedIdentities(): Promise<SeedIdentities> {
-    const [nodes, edges] = await Promise.all([
-      this.execute("seed-node-identities", QUERIES.seedNodeIdentities, {}, "strong", false),
-      this.execute("seed-edge-identities", QUERIES.seedEdgeIdentities, {}, "strong", false),
-    ]);
+    const nodes = await this.execute(
+      "seed-node-identities",
+      QUERIES.seedNodeIdentities,
+      {},
+      "strong",
+      false,
+    );
+    const edgeRows: Array<Record<string, unknown>> = [];
+    for (const [type, query] of Object.entries(EDGE_IDENTITIES_QUERY_BY_TYPE)) {
+      const result = await this.execute(
+        `seed-edge-identities-${type.toLowerCase()}`,
+        query,
+        {},
+        "strong",
+        false,
+      );
+      edgeRows.push(...result.rows);
+    }
     return {
       nodeIds: nodes.rows.map((row) => asId(row.id, "seed node ID")).sort(),
-      edgeIds: edges.rows.map((row) => asId(row.id, "seed relationship ID")).sort(),
+      edgeIds: edgeRows.map((row) => asId(row.id, "seed relationship ID")).sort(),
     };
   }
 
   async removeSeedMarker(): Promise<void> {
-    await this.execute("remove-seed-marker", QUERIES.removeSeedMarker, {}, "strong", false);
+    await this.execute("remove-seed-marker", QUERIES.removeSeedMarker, {}, "causal", false);
   }
 
   async upsertNodes(nodes: GraphNode[], fixtureRoot: string, includeSeed = false): Promise<void> {
@@ -462,6 +456,7 @@ export class HydraRepository {
             {
               rows: batch.map((node) => ({
                 id: Number(node.id),
+                node_label: node.label,
                 key: node.key,
                 ...node.properties,
                 fixture: fixtureRoot,
@@ -539,14 +534,14 @@ export class HydraRepository {
           { id: Number(target), key: `smoke:${target}` },
         ],
       },
-      "strong",
+      "causal",
       false,
     );
     await this.execute(
       "smoke-create-edge",
       QUERIES.smokeCreateEdge,
       { source: Number(source), target: Number(target), id: Number(edge) },
-      "strong",
+      "causal",
       false,
     );
     const matched = await this.execute("smoke-match", QUERIES.smokeMatch, {}, "strong", false);
@@ -556,7 +551,7 @@ export class HydraRepository {
         "HYDRADB_PROTOCOL_ERROR",
         "HydraDB smoke match returned the wrong destination.",
       );
-    await this.execute("smoke-delete", QUERIES.smokeDelete, {}, "strong", false);
+    await this.execute("smoke-delete", QUERIES.smokeDelete, {}, "causal", false);
     return target;
   }
 

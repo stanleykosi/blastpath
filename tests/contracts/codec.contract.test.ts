@@ -1,8 +1,9 @@
 import { decodeEnvelope, decodeTaggedValue } from "@/lib/hydradb/codec";
 
 describe("HydraDB tagged protocol", () => {
-  it("decodes scalar, list, ID, and path tags", () => {
+  it("decodes the official scalar, list, ID, and path tags", () => {
     expect(decodeTaggedValue({ type: "integer", value: 4 })).toBe(4);
+    expect(decodeTaggedValue({ type: "signed_integer", value: -4 })).toBe(-4);
     expect(decodeTaggedValue({ type: "vertex_id", value: 44 })).toBe("44");
     expect(decodeTaggedValue({ type: "list", value: [{ type: "string", value: "x" }] })).toEqual([
       "x",
@@ -11,11 +12,8 @@ describe("HydraDB tagged protocol", () => {
       decodeTaggedValue({
         type: "path",
         value: {
-          nodes: [
-            { type: "vertex_id", value: 1 },
-            { type: "vertex_id", value: 2 },
-          ],
-          edges: [{ type: "edge_id", value: 3 }],
+          nodes: [{ id: 1 }, { id: 2 }],
+          relationships: [{ id: 3 }],
         },
       }),
     ).toEqual({ nodeIds: ["1", "2"], edgeIds: ["3"] });
@@ -32,8 +30,8 @@ describe("HydraDB tagged protocol", () => {
     const pathValue = (nodeIds: number[], edgeIds: number[]) => ({
       type: "path",
       value: {
-        nodes: nodeIds.map((value) => ({ type: "vertex_id", value })),
-        edges: edgeIds.map((value) => ({ type: "edge_id", value })),
+        nodes: nodeIds.map((id) => ({ id })),
+        relationships: edgeIds.map((id) => ({ id })),
       },
     });
 

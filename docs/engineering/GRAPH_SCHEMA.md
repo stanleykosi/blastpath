@@ -29,6 +29,8 @@ JavaScript numbers cannot safely represent 63-bit integers. Keep IDs as decimal 
 
 All HydraDB properties are strings, integers, floats, or booleans. Do not store arrays, objects, null, or dates.
 
+Each node also stores the internal scalar property `node_label`. Its value must equal the fixed node label in the table. BlastPath uses this property for bounded path hydration because HydraDB 0.1.1 does not support `labels(n)` projections.
+
 ## Relationships
 
 | Direction | Type | Meaning |

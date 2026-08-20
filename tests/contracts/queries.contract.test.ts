@@ -1,4 +1,11 @@
-import { EDGE_QUERY_BY_KIND, NODE_QUERY_BY_LABEL, QUERIES } from "@/lib/hydradb/queries";
+import {
+  EDGE_COUNT_QUERY_BY_TYPE,
+  EDGE_IDENTITIES_QUERY_BY_TYPE,
+  EDGE_QUERY_BY_KIND,
+  NODE_COUNT_QUERY_BY_LABEL,
+  NODE_QUERY_BY_LABEL,
+  QUERIES,
+} from "@/lib/hydradb/queries";
 
 describe("Cypher query ownership", () => {
   it("keeps all write labels and relationship types in the allowlists", () => {
@@ -19,9 +26,21 @@ describe("Cypher query ownership", () => {
         /MATCH \(s:[A-Za-z]+ \{id: row\.source\}\), \(d:[A-Za-z]+ \{id: row\.target\}\)/,
       );
     }
-    expect(QUERIES.seedNodeCounts).toContain("MATCH (n)");
-    expect(QUERIES.seedEdgeCounts).toContain("count(r)");
+    expect(Object.keys(NODE_COUNT_QUERY_BY_LABEL)).toHaveLength(9);
+    expect(Object.keys(EDGE_COUNT_QUERY_BY_TYPE)).toHaveLength(10);
+    expect(Object.keys(EDGE_IDENTITIES_QUERY_BY_TYPE)).toHaveLength(10);
+    for (const query of Object.values(NODE_COUNT_QUERY_BY_LABEL)) {
+      expect(query).toContain("count(*) AS count");
+    }
+    for (const query of Object.values(EDGE_COUNT_QUERY_BY_TYPE)) {
+      expect(query).toContain("count(*) AS count");
+      expect(query).toMatch(/-\[r:[A-Z_]+\]->/);
+    }
     expect(QUERIES.seedNodeIdentities).toContain("RETURN n.id AS id ORDER BY id");
-    expect(QUERIES.seedEdgeIdentities).toContain("RETURN r.id AS id ORDER BY id");
+    for (const query of Object.values(EDGE_IDENTITIES_QUERY_BY_TYPE)) {
+      expect(query).toContain("RETURN r.id AS id ORDER BY id");
+      expect(query).toMatch(/-\[r:[A-Z_]+\]->/);
+    }
+    expect(Object.values(QUERIES).join(" ")).not.toMatch(/labels\(|type\(|count\([^*]/);
   });
 });
