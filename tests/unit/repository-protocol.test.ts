@@ -24,6 +24,31 @@ describe("HydraDB repository protocol boundaries", () => {
     });
   });
 
+  it("hydrates a relationship with its stable ID and exact endpoints", async () => {
+    let parameters: Record<string, unknown> | undefined;
+    const client = {
+      readWithRetry: async (
+        _operation: string,
+        _query: string,
+        nextParameters: Record<string, unknown>,
+      ) => {
+        parameters = nextParameters;
+        return result(
+          ["source", "target", "key", "source_ref"],
+          [["1", "2", "edge:DEPENDS_ON:test", "node_modules/test"]],
+        );
+      },
+    };
+    const repository = new HydraRepository(client as never);
+
+    await expect(repository.hydrateEdge("7", "1", "2")).resolves.toMatchObject({
+      id: "7",
+      source: "1",
+      target: "2",
+    });
+    expect(parameters).toEqual({ id: 7, source: 1, target: 2 });
+  });
+
   it("returns GRAPH_NOT_SEEDED when an incident and the marker are absent", async () => {
     const client = {
       readWithRetry: async () => result([], []),

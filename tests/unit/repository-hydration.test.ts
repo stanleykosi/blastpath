@@ -6,7 +6,7 @@ class TrackingRepository extends HydraRepository {
   active = 0;
   maximumActive = 0;
   readonly nodeCalls: Id[] = [];
-  readonly edgeCalls: Id[] = [];
+  readonly edgeCalls: Array<{ id: Id; source: Id; target: Id }> = [];
 
   constructor() {
     super({} as never);
@@ -30,19 +30,9 @@ class TrackingRepository extends HydraRepository {
     };
   }
 
-  override async hydrateEdge(id: Id): Promise<GraphEdge> {
-    this.edgeCalls.push(id);
+  override async hydrateEdge(id: Id, source: Id, target: Id): Promise<GraphEdge> {
+    this.edgeCalls.push({ id, source, target });
     await this.track();
-    const endpoints: Record<Id, [Id, Id]> = {
-      "101": ["1", "11"],
-      "102": ["11", "20"],
-      "103": ["20", "30"],
-      "201": ["2", "12"],
-      "202": ["12", "20"],
-    };
-    const endpointsForEdge = endpoints[id];
-    if (!endpointsForEdge) throw new Error(`Unknown test edge ${id}`);
-    const [source, target] = endpointsForEdge;
     return {
       id,
       type: "DEPENDS_ON",
@@ -69,7 +59,24 @@ describe("HydraDB path hydration", () => {
     expect(repository.maximumActive).toBeLessThanOrEqual(6);
     expect(repository.nodeCalls.filter((id) => id === "20")).toHaveLength(1);
     expect(repository.nodeCalls.filter((id) => id === "30")).toHaveLength(1);
-    expect(repository.edgeCalls.filter((id) => id === "103")).toHaveLength(1);
+    expect(repository.edgeCalls.filter((call) => call.id === "103")).toEqual([
+      { id: "103", source: "20", target: "30" },
+    ]);
+  });
+
+  it("rejects one relationship ID with conflicting path endpoints", async () => {
+    const repository = new TrackingRepository();
+    const paths: DecodedPath[] = [
+      { nodeIds: ["30", "20"], edgeIds: ["103"] },
+      { nodeIds: ["30", "21"], edgeIds: ["103"] },
+    ];
+
+    await expect(repository.normalizePaths(paths)).rejects.toMatchObject({
+      code: "HYDRADB_PROTOCOL_ERROR",
+      status: 502,
+    });
+    expect(repository.nodeCalls).toEqual([]);
+    expect(repository.edgeCalls).toEqual([]);
   });
 
   it("rejects an over-depth path before it starts metadata requests", async () => {

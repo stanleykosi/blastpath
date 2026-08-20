@@ -282,11 +282,11 @@ export class HydraRepository {
     };
   }
 
-  async hydrateEdge(id: Id): Promise<GraphEdge> {
+  async hydrateEdge(id: Id, source: Id, target: Id): Promise<GraphEdge> {
     const result = await this.execute(
       "hydrate-edge",
       QUERIES.hydrateEdge,
-      { id: Number(id) },
+      { id: Number(id), source: Number(source), target: Number(target) },
       "causal",
       true,
     );
@@ -294,7 +294,7 @@ export class HydraRepository {
     if (!row)
       throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB could not hydrate a path edge.");
     return {
-      id: asId(row.id, "edge ID"),
+      id,
       type: "DEPENDS_ON",
       key: asString(row.key, "edge key"),
       source: asId(row.source, "edge source"),
@@ -615,15 +615,30 @@ export class HydraRepository {
         throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid path shape.");
     }
     const nodeIds = [...new Set(paths.flatMap((path) => path.nodeIds))];
-    const edgeIds = [...new Set(paths.flatMap((path) => path.edgeIds))];
+    const edgeEndpoints = new Map<Id, { source: Id; target: Id }>();
+    for (const path of paths) {
+      for (let index = 0; index < path.edgeIds.length; index += 1) {
+        const id = path.edgeIds[index];
+        const source = path.nodeIds[index + 1];
+        const target = path.nodeIds[index];
+        const existing = edgeEndpoints.get(id);
+        if (existing && (existing.source !== source || existing.target !== target)) {
+          throw new HydradbError(
+            "HYDRADB_PROTOCOL_ERROR",
+            "HydraDB returned one path edge with conflicting endpoints.",
+          );
+        }
+        edgeEndpoints.set(id, { source, target });
+      }
+    }
     const nodesById = new Map<Id, GraphNode>();
     const edgesById = new Map<Id, GraphEdge>();
     const tasks: Array<() => Promise<void>> = [
       ...nodeIds.map((id) => async () => {
         nodesById.set(id, await this.hydrateNode(id));
       }),
-      ...edgeIds.map((id) => async () => {
-        edgesById.set(id, await this.hydrateEdge(id));
+      ...[...edgeEndpoints].map(([id, endpoints]) => async () => {
+        edgesById.set(id, await this.hydrateEdge(id, endpoints.source, endpoints.target));
       }),
     ];
     let nextTask = 0;

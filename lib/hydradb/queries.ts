@@ -46,7 +46,7 @@ export const QUERIES = {
   reverseBlastPaths: `CALL algo.SSpaths({sourceNode: $source, relTypes: ['DEPENDS_ON'], relDirection: 'incoming', maxLen: 8, pathCount: 100, resultLimit: 500}) YIELD path RETURN path`,
   exactPath: `CALL algo.SPpaths({sourceNode: $affected, targetNode: $service, relTypes: ['DEPENDS_ON'], relDirection: 'incoming', maxLen: 8, pathCount: 5}) YIELD path, pathWeight, pathCost RETURN path, pathWeight, pathCost`,
   hydrateNode: `MATCH (n {id: $id}) RETURN n.id AS id, n.node_label AS label, n.key AS key, n.name AS name, n.version AS version, n.source_ref AS source_ref`,
-  hydrateEdge: `MATCH (s)-[r:DEPENDS_ON {id: $id}]->(d) RETURN r.id AS id, r.key AS key, s.id AS source, d.id AS target, r.source_ref AS source_ref`,
+  hydrateEdge: `MATCH (s {id: $source})-[r:DEPENDS_ON {id: $id}]->(d {id: $target}) RETURN s.id AS source, d.id AS target, r.key AS key, r.source_ref AS source_ref`,
   serviceEvidence: `MATCH (r:Repository)-[:PRODUCES]->(s:Service {id: $service_id}) MATCH (r)-[:HAS_LOCKFILE]->(l:Lockfile) OPTIONAL MATCH (b:Build)-[:USES]->(l) RETURN s.id AS service_id, s.key AS service_key, s.name AS service_name, s.owner AS owner, s.criticality AS criticality, r.id AS repository_id, r.name AS repository_name, l.digest AS lockfile_digest, b.build_id AS build_id, b.timestamp_iso AS timestamp_iso, b.timestamp_ms AS timestamp_ms, b.environment AS environment, b.lockfile_digest AS build_lockfile_digest ORDER BY timestamp_ms`,
   services: `MATCH (s:Service) RETURN s.id AS id, s.key AS key, s.name AS name, s.owner AS owner, s.criticality AS criticality ORDER BY name`,
   seedMarker: `MATCH (s:SeedRun {key: 'seed:blastpath-demo-v1'})-[:SEEDED]->(o:Organization) RETURN s.key AS key, s.version AS version`,

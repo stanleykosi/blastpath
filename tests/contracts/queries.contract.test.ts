@@ -16,6 +16,9 @@ describe("Cypher query ownership", () => {
     expect(QUERIES.reverseBlastPaths).toContain("relDirection: 'incoming'");
     expect(QUERIES.reverseBlastPaths).toContain("maxLen: 8");
     expect(QUERIES.reverseBlastPaths).not.toContain("@tanstack");
+    expect(QUERIES.hydrateEdge).toContain("(s {id: $source})");
+    expect(QUERIES.hydrateEdge).toContain("(d {id: $target})");
+    expect(QUERIES.hydrateEdge).not.toContain("r.id AS id");
     expect(QUERIES.seedMarker).toContain("{key: 'seed:blastpath-demo-v1'}");
     expect(QUERIES.seedMarker).toContain("-[:SEEDED]->(o:Organization)");
     expect(QUERIES.removeSeedMarker).toContain("{key: 'seed:blastpath-demo-v1'}");
