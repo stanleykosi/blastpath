@@ -35,6 +35,12 @@ export function decodeTaggedValue(value: unknown): unknown {
   if (typeof type !== "string" || !tags.has(type)) {
     throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an unknown value tag.");
   }
+  if (type === "null") {
+    if ("value" in value && value.value !== null) {
+      throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid null value.");
+    }
+    return null;
+  }
   if (!("value" in value)) {
     throw new HydradbError(
       "HYDRADB_PROTOCOL_ERROR",
@@ -62,10 +68,6 @@ export function decodeTaggedValue(value: unknown): unknown {
       return raw;
     case "vertex_id":
       return decimalId(raw);
-    case "null":
-      if (raw !== null)
-        throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid null value.");
-      return null;
     case "list":
       if (!Array.isArray(raw))
         throw new HydradbError("HYDRADB_PROTOCOL_ERROR", "HydraDB returned an invalid list.");

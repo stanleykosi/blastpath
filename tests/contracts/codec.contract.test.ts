@@ -19,8 +19,21 @@ describe("HydraDB tagged protocol", () => {
     ).toEqual({ nodeIds: ["1", "2"], edgeIds: ["3"] });
   });
 
+  it("decodes the official null tag without a value field", () => {
+    expect(decodeTaggedValue({ type: "null" })).toBeNull();
+    expect(
+      decodeEnvelope({
+        query_id: "q-null",
+        columns: ["optional"],
+        rows: [[{ type: "null" }]],
+      }).rows,
+    ).toEqual([[null]]);
+  });
+
   it("rejects unknown tags and malformed envelopes", () => {
     expect(() => decodeTaggedValue({ type: "secret", value: "x" })).toThrow(/unknown value tag/);
+    expect(() => decodeTaggedValue({ type: "string" })).toThrow(/tagged value without a value/);
+    expect(() => decodeTaggedValue({ type: "null", value: "x" })).toThrow(/invalid null value/);
     expect(() =>
       decodeEnvelope({ query_id: "q", columns: ["x"], rows: [[{ type: "secret", value: "x" }]] }),
     ).toThrow(/unknown value tag/);
